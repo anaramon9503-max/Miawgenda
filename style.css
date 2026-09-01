@@ -1,0 +1,602 @@
+/* ==============================
+   AR AGENDA - ESTILOS GENERALES
+   ============================== */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: #f7f5f8;
+  color: #29252e;
+  padding: 24px 15px;
+}
+
+.contenedor {
+  max-width: 650px;
+  margin: auto;
+}
+
+
+/* ENCABEZADO */
+
+.encabezado {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.encabezado h1 {
+  margin: 0 0 6px;
+  font-size: 29px;
+  color: #29252e;
+}
+
+.encabezado p {
+  margin: 0;
+  color: #777;
+}
+
+
+/* TARJETAS */
+
+.tarjeta {
+  background: white;
+  padding: 23px;
+  border-radius: 22px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.07);
+}
+
+h2 {
+  margin-top: 0;
+}
+
+
+/* CAMPOS */
+
+input,
+textarea,
+select {
+  width: 100%;
+  padding: 15px;
+  margin-bottom: 13px;
+  border: 1px solid #ddd6df;
+  border-radius: 14px;
+  font-size: 16px;
+  background: #faf8fb;
+  font-family: Arial, sans-serif;
+}
+
+textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid #cfc3d4;
+  border-color: #8b7a92;
+}
+
+
+/* BOTONES */
+
+button {
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#btnLogin,
+#btnCerrar {
+  width: 100%;
+  padding: 15px;
+  font-size: 16px;
+}
+
+#btnLogin {
+  background: #514458;
+  color: white;
+}
+
+#btnLogin:active {
+  transform: scale(0.99);
+}
+
+
+/* ELEMENTOS OCULTOS */
+
+.oculto {
+  display: none !important;
+}
+
+
+/* MENSAJES */
+
+.mensaje {
+  margin-top: 15px;
+  padding: 14px;
+  border-radius: 13px;
+}
+
+.error {
+  background: #fdeeee;
+  color: #8b2525;
+}
+
+.exito {
+  background: #edf8ef;
+  color: #276337;
+}
+
+
+/* PANEL */
+
+.barra {
+  margin-bottom: 20px;
+  padding-bottom: 17px;
+  border-bottom: 1px solid #eee9f0;
+}
+
+.negocio {
+  background: #f3eff5;
+  border-radius: 15px;
+  padding: 14px;
+  margin-bottom: 15px;
+}
+
+.negocio-label {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 4px;
+}
+
+.negocio-nombre {
+  font-size: 18px;
+  font-weight: bold;
+  color: #514458;
+}
+
+.correo {
+  font-size: 14px;
+  color: #777;
+  margin-bottom: 12px;
+}
+
+.cerrar {
+  background: #eee9f0;
+  color: #514458;
+}
+
+
+/* NAVEGACIÓN DEL PANEL */
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.tab {
+  padding: 13px;
+  background: #eee9f0;
+  color: #514458;
+}
+
+.tab.activa {
+  background: #514458;
+  color: white;
+}
+
+
+/* CITAS */
+
+.titulo-citas {
+  margin: 25px 0 14px;
+}
+
+.citas {
+  display: grid;
+  gap: 15px;
+}
+
+.cita {
+  background: #faf8fb;
+  border: 1px solid #ebe5ed;
+  border-radius: 17px;
+  padding: 17px;
+}
+
+.fecha {
+  font-weight: bold;
+  font-size: 17px;
+  margin-bottom: 7px;
+}
+
+.hora {
+  color: #514458;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.dato {
+  margin: 5px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+/* ESTADOS DE LAS CITAS */
+
+.estado {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: #eee9f0;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.estado-confirmada {
+  background: #e7f5ec;
+  color: #26633a;
+}
+
+.estado-pendiente {
+  background: #fff4d6;
+  color: #815f00;
+}
+
+.estado-atendida {
+  background: #e7efff;
+  color: #29528a;
+}
+
+.estado-cancelada {
+  background: #fde7e7;
+  color: #8a3030;
+}
+
+.estado-no_asistio {
+  background: #eeeeee;
+  color: #555;
+}
+
+
+/* BOTONES DE LAS CITAS */
+
+.acciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.acciones button {
+  padding: 11px 8px;
+  font-size: 13px;
+}
+
+.btn-confirmar {
+  background: #e4f5e9;
+  color: #27633a;
+}
+
+.btn-atendida {
+  background: #e6efff;
+  color: #294f85;
+}
+
+.btn-cancelar {
+  background: #fde8e8;
+  color: #8b3030;
+}
+
+.btn-no-asistio {
+  background: #ececec;
+  color: #444;
+}
+
+.acciones button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+
+/* CARGANDO / SIN RESULTADOS */
+
+.cargando,
+.sin-citas,
+.sin-resultados {
+  text-align: center;
+  padding: 25px 10px;
+  color: #777;
+}
+
+
+/* ==============================
+   SERVICIOS
+   ============================== */
+
+.form-servicio {
+  background: #f8f5f9;
+  border: 1px solid #ebe5ed;
+  border-radius: 18px;
+  padding: 17px;
+  margin-bottom: 22px;
+}
+
+.form-servicio h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.fila-doble {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn-guardar {
+  width: 100%;
+  padding: 14px;
+  background: #514458;
+  color: white;
+  font-size: 15px;
+}
+
+.btn-cancelar-edicion {
+  width: 100%;
+  padding: 12px;
+  margin-top: 9px;
+  background: #eae6ec;
+  color: #514458;
+}
+
+.lista-servicios {
+  display: grid;
+  gap: 14px;
+}
+
+.servicio-card {
+  border: 1px solid #ebe5ed;
+  border-radius: 17px;
+  padding: 16px;
+  background: #faf8fb;
+}
+
+.servicio-cabecera {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.servicio-nombre {
+  font-weight: bold;
+  font-size: 17px;
+  margin-bottom: 7px;
+}
+
+.servicio-precio {
+  font-weight: bold;
+  color: #514458;
+  white-space: nowrap;
+}
+
+.servicio-descripcion {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #555;
+}
+
+.servicio-meta {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #777;
+}
+
+.servicio-estado {
+  display: inline-block;
+  padding: 5px 9px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
+.servicio-estado.activo {
+  background: #e7f5ec;
+  color: #27633a;
+}
+
+.servicio-estado.inactivo {
+  background: #eeeeee;
+  color: #666;
+}
+
+.servicio-acciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+/* ===== PROFESIONALES ===== */
+
+.servicio-acciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.servicio-acciones button {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-editar {
+  background: #eee9f1;
+  color: #55465e;
+}
+
+.btn-servicios {
+  background: #5d4b66;
+  color: white;
+}
+
+.btn-activar {
+  grid-column: 1 / -1;
+  background: #f5edf2;
+  color: #8a536b;
+}
+
+.servicio-card {
+  padding: 18px;
+  margin-bottom: 14px;
+  border-radius: 16px;
+}
+
+.servicio-nombre {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 7px;
+}
+
+.servicio-descripcion {
+  margin-top: 8px;
+  color: #6d6670;
+}
+
+.servicio-estado {
+  display: inline-block;
+  padding: 4px 9px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.servicio-estado.activo {
+  background: #e8f6ed;
+  color: #39734d;
+}
+
+.servicio-estado.inactivo {
+  background: #f4e8ec;
+  color: #8a536b;
+}
+
+
+.servicio-acciones button {
+  padding: 11px;
+}
+
+.btn-editar {
+  background: #ece7ef;
+  color: #514458;
+}
+
+.btn-activar {
+  background: #f3edf5;
+  color: #514458;
+}
+
+
+/* CELULAR */
+
+@media (max-width: 420px) {
+
+  body {
+    padding: 18px 12px;
+  }
+
+  .tarjeta {
+    padding: 18px;
+  }
+
+  .fila-doble {
+    grid-template-columns: 1fr;
+  }
+
+
+   .horario-dia-card {
+  margin-bottom: 16px;
+}
+
+.horas-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  margin-bottom: 14px;
+}
+
+.hora-chip {
+  background: #f4eff8;
+  border-radius: 12px;
+  padding: 9px 13px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.horarios-bloques {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.horario-bloque {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
+
+.horario-bloque button {
+  width: auto;
+}
+
+.horario-dia-card {
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.horario-dia-card h3 {
+  margin: 0 0 12px 0;
+}
+
+.horas-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.hora-chip-admin {
+  width: auto;
+  border: none;
+  border-radius: 20px;
+  padding: 9px 13px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hora-chip-admin span {
+  margin-left: 6px;
+  font-size: 16px;
+}

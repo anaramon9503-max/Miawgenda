@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AR Agenda | Servicios</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+  <div class="encabezado">
+    <h1>AR Agenda</h1>
+    <p>Administración de servicios</p>
+  </div>
+
+  <div class="tarjeta">
+
+    <div class="barra">
+
+      <div class="negocio">
+        <div class="negocio-label">
+          Negocio
+        </div>
+
+        <div
+          id="nombreNegocio"
+          class="negocio-nombre"
+        >
+          Cargando...
+        </div>
+      </div>
+
+      <div class="correo">
+        Sesión:
+        <span id="correoUsuario"></span>
+      </div>
+
+      <button
+        id="btnVolver"
+        class="cerrar"
+        style="width:100%; padding:15px; margin-bottom:10px;"
+      >
+        ← Volver a citas
+      </button>
+
+      <button
+        id="btnCerrar"
+        class="cerrar"
+        style="width:100%; padding:15px;"
+      >
+        Cerrar sesión
+      </button>
+
+    </div>
+
+
+    <div class="form-servicio">
+
+      <h3 id="tituloFormularioServicio">
+        Agregar servicio
+      </h3>
+
+      <form id="formularioServicio">
+
+        <input
+          type="text"
+          id="servicioNombre"
+          placeholder="Nombre del servicio"
+          required
+        >
+
+        <textarea
+          id="servicioDescripcion"
+          placeholder="Descripción"
+        ></textarea>
+
+        <div class="fila-doble">
+
+          <input
+            type="number"
+            id="servicioDuracion"
+            placeholder="Duración en minutos"
+            value="60"
+            min="1"
+            required
+          >
+
+          <input
+            type="number"
+            id="servicioPrecio"
+            placeholder="Precio"
+            min="0"
+            step="0.01"
+            required
+          >
+
+        </div>
+
+        <button
+          type="submit"
+          class="btn-guardar"
+        >
+          Guardar servicio
+        </button>
+
+        <button
+          type="button"
+          id="btnCancelarEdicion"
+          class="btn-cancelar-edicion oculto"
+        >
+          Cancelar edición
+        </button>
+
+      </form>
+
+    </div>
+
+
+    <h2>Mis servicios</h2>
+
+    <div
+      id="listaServicios"
+      class="lista-servicios"
+    >
+      <div class="cargando">
+        Cargando servicios...
+      </div>
+    </div>
+
+
+    <div
+      id="mensaje"
+      class="mensaje oculto"
+    ></div>
+
+  </div>
+
+</div>
+
+
+<script src="servicios.js"></script>
+
+</body>
+</html>

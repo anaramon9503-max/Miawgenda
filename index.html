@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AR Agenda</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f7f5f8;
+      color: #29252e;
+      min-height: 100vh;
+      padding: 25px 16px;
+    }
+
+    .contenedor {
+      max-width: 520px;
+      margin: auto;
+    }
+
+    .encabezado {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .encabezado h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+    }
+
+    .encabezado p {
+      margin: 0;
+      color: #716b75;
+    }
+
+    .tarjeta {
+      background: white;
+      border-radius: 22px;
+      padding: 24px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.07);
+    }
+
+    .negocio {
+      font-size: 14px;
+      color: #777;
+      margin-bottom: 8px;
+    }
+
+    .paso {
+      margin-top: 25px;
+    }
+
+    h2 {
+      margin: 0 0 15px;
+      font-size: 21px;
+    }
+
+    .opciones {
+      display: grid;
+      gap: 12px;
+    }
+
+    .opcion {
+      width: 100%;
+      text-align: left;
+      background: #faf8fb;
+      border: 1px solid #e8e3ea;
+      border-radius: 16px;
+      padding: 17px;
+      cursor: pointer;
+    }
+
+    .opcion.seleccionado {
+      border: 2px solid #514458;
+      background: #f2edf4;
+    }
+
+    .titulo-opcion {
+      font-size: 17px;
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .detalle-opcion {
+      font-size: 14px;
+      color: #726b76;
+      line-height: 1.5;
+    }
+
+    .precio {
+      margin-top: 8px;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .estado {
+      color: #777;
+      padding: 10px 0;
+    }
+
+    .oculto {
+      display: none;
+    }
+
+    input {
+      width: 100%;
+      padding: 15px;
+      border-radius: 14px;
+      border: 1px solid #ddd6df;
+      font-size: 16px;
+      background: #faf8fb;
+      margin-bottom: 12px;
+    }
+
+    .horarios {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .hora {
+      border: 1px solid #ded7e1;
+      background: #faf8fb;
+      padding: 13px 5px;
+      border-radius: 13px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .hora.seleccionado {
+      background: #514458;
+      color: white;
+      border-color: #514458;
+    }
+
+    .resumen {
+      margin-top: 25px;
+      background: #f2edf4;
+      padding: 16px;
+      border-radius: 15px;
+      line-height: 1.7;
+    }
+
+    .boton-confirmar {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 15px;
+      background: #514458;
+      color: white;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    .boton-confirmar:disabled {
+      opacity: .6;
+    }
+
+    .mensaje {
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 15px;
+      line-height: 1.5;
+    }
+
+    .exito {
+      background: #edf7ef;
+    }
+
+    .error {
+      background: #fdeeee;
+    }
+
+    .check {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+  <div class="encabezado">
+    <h1>AR Agenda</h1>
+    <p>Agenda tu cita de manera fácil y rápida</p>
+  </div>
+
+  <div class="tarjeta">
+
+    <div id="nombreNegocio" class="negocio">
+      Cargando negocio...
+    </div>
+
+    <div class="paso">
+      <h2>1. Selecciona un servicio</h2>
+      <div id="servicios" class="opciones">
+        <div class="estado">Cargando servicios...</div>
+      </div>
+    </div>
+
+    <div id="seccionProfesionales" class="paso oculto">
+      <h2>2. Selecciona un profesional</h2>
+      <div id="profesionales" class="opciones"></div>
+    </div>
+
+    <div id="seccionFecha" class="paso oculto">
+      <h2>3. Selecciona una fecha</h2>
+      <input type="date" id="fecha">
+    </div>
+
+    <div id="seccionHorarios" class="paso oculto">
+      <h2>4. Selecciona un horario</h2>
+      <div id="horarios" class="horarios"></div>
+    </div>
+
+    <div id="seccionDatos" class="paso oculto">
+
+      <h2>5. Tus datos</h2>
+
+      <input
+        type="text"
+        id="nombreCliente"
+        placeholder="Nombre completo"
+      >
+
+      <input
+        type="tel"
+        id="telefonoCliente"
+        placeholder="Teléfono"
+      >
+
+      <input
+        type="email"
+        id="emailCliente"
+        placeholder="Correo electrónico (opcional)"
+      >
+
+      <button
+        id="confirmar"
+        class="boton-confirmar"
+      >
+        Confirmar cita
+      </button>
+
+    </div>
+
+    <div id="resumen" class="resumen oculto">
+
+      <div class="check">
+        ✅ Selección actual
+      </div>
+
+      <div id="resumenServicio"></div>
+      <div id="resumenProfesional"></div>
+      <div id="resumenFecha"></div>
+      <div id="resumenHora"></div>
+
+    </div>
+
+    <div id="mensaje" class="mensaje oculto"></div>
+
+  </div>
+
+</div>
+
+<script>
+
+const SUPABASE_URL =
+  "https://wbdijpsiovssuhxzzovi.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_T-fiB_MwofciQDOd7KWVOQ_LBVpq9xB";
+
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+let negocioActual = null;
+let servicioSeleccionado = null;
+let profesionalSeleccionado = null;
+let fechaSeleccionada = null;
+let horaSeleccionada = null;
+
+
+async function cargarAgenda() {
+
+  const nombreNegocio =
+    document.getElementById("nombreNegocio");
+
+  const contenedorServicios =
+    document.getElementById("servicios");
+
+  const {
+    data: negocio,
+    error: errorNegocio
+  } = await db
+    .from("negocios_publicos")
+    .select("id, nombre")
+    .eq("nombre", "Negocio de Prueba")
+    .maybeSingle();
+
+  if (errorNegocio || !negocio) {
+
+    nombreNegocio.textContent =
+      "No se encontró el negocio";
+
+    return;
+  }
+
+  negocioActual = negocio;
+
+  nombreNegocio.textContent =
+    negocio.nombre;
+
+  const {
+    data: servicios,
+    error: errorServicios
+  } = await db
+    .from("servicios_publicos")
+    .select("*")
+    .eq("negocio_id", negocio.id)
+    .order("nombre");
+
+  if (errorServicios) {
+
+    contenedorServicios.innerHTML =
+      "No fue posible cargar servicios.";
+
+    return;
+  }
+
+  contenedorServicios.innerHTML = "";
+
+  servicios.forEach(servicio => {
+
+    const boton =
+      document.createElement("button");
+
+    boton.className = "opcion";
+
+    boton.innerHTML = `
+      <span class="titulo-opcion">
+        ${servicio.nombre}
+      </span>
+
+      <span class="detalle-opcion">
+        ${servicio.descripcion || ""}
+        <br>
+        ⏱ ${servicio.duracion_minutos} minutos
+      </span>
+
+      ${
+        servicio.precio !== null
+        ? `
+          <div class="precio">
+            $${Number(servicio.precio).toFixed(2)}
+          </div>
+        `
+        : ""
+      }
+    `;
+
+    boton.addEventListener(
+      "click",
+      async () => {
+
+        document
+          .querySelectorAll("#servicios .opcion")
+          .forEach(item =>
+            item.classList.remove("seleccionado")
+          );
+
+        boton.classList.add("seleccionado");
+
+        servicioSeleccionado = servicio;
+        profesionalSeleccionado = null;
+        fechaSeleccionada = null;
+        horaSeleccionada = null;
+
+        document
+          .getElementById("seccionFecha")
+          .classList.add("oculto");
+
+        document
+          .getElementById("seccionHorarios")
+          .classList.add("oculto");
+
+        document
+          .getElementById("seccionDatos")
+          .classList.add("oculto");
+
+        document
+          .getElementById("resumen")
+          .classList.add("oculto");
+
+        ocultarMensaje();
+
+        await cargarProfesionales(servicio.id);
+      }
+    );
+
+    contenedorServicios.appendChild(boton);
+  });
+}
+
+
+async function cargarProfesionales(servicioId) {
+
+  const seccion =
+    document.getElementById("seccionProfesionales");
+
+  const contenedor =
+    document.getElementById("profesionales");
+
+  seccion.classList.remove("oculto");
+
+  contenedor.innerHTML =
+    '<div class="estado">Cargando profesionales...</div>';
+
+  const {
+    data: relaciones,
+    error: errorRelaciones
+  } = await db
+    .from("profesional_servicios_publicos")
+    .select("profesional_id")
+    .eq("servicio_id", servicioId);
+
+  if (errorRelaciones) {
+
+    contenedor.innerHTML =
+      "No fue posible cargar profesionales.";
+
+    return;
+  }
+
+  const ids =
+    relaciones.map(item => item.profesional_id);
+
+  if (ids.length === 0) {
+
+    contenedor.innerHTML =
+      "No hay profesionales disponibles.";
+
+    return;
+  }
+
+  const {
+    data: profesionales,
+    error
+  } = await db
+    .from("profesionales_publicos")
+    .select("*")
+    .eq("negocio_id", negocioActual.id)
+    .in("id", ids)
+    .order("nombre");
+
+  if (error) {
+
+    contenedor.innerHTML =
+      "Error al cargar profesionales.";
+
+    return;
+  }
+
+  contenedor.innerHTML = "";
+
+  profesionales.forEach(profesional => {
+
+    const boton =
+      document.createElement("button");
+
+    boton.className = "opcion";
+
+    boton.innerHTML = `
+      <span class="titulo-opcion">
+        ${profesional.nombre}
+      </span>
+
+      <span class="detalle-opcion">
+        ${profesional.especialidad || ""}
+      </span>
+    `;
+
+    boton.addEventListener(
+      "click",
+      () => {
+
+        document
+          .querySelectorAll("#profesionales .opcion")
+          .forEach(item =>
+            item.classList.remove("seleccionado")
+          );
+
+        boton.classList.add("seleccionado");
+
+        profesionalSeleccionado =
+          profesional;
+
+        fechaSeleccionada = null;
+        horaSeleccionada = null;
+
+        document.getElementById("fecha").value = "";
+
+        document
+          .getElementById("seccionFecha")
+          .classList.remove("oculto");
+
+        document
+          .getElementById("seccionHorarios")
+          .classList.add("oculto");
+
+        document
+          .getElementById("seccionDatos")
+          .classList.add("oculto");
+
+        ocultarMensaje();
+
+        actualizarResumen();
+      }
+    );
+
+    contenedor.appendChild(boton);
+  });
+}
+
+
+const fechaInput =
+  document.getElementById("fecha");
+
+const hoy =
+  new Date();
+
+const hoyTexto =
+  hoy.getFullYear()
+  + "-"
+  + String(hoy.getMonth() + 1).padStart(2, "0")
+  + "-"
+  + String(hoy.getDate()).padStart(2, "0");
+
+fechaInput.min = hoyTexto;
+
+
+fechaInput.addEventListener(
+  "change",
+  async () => {
+
+    fechaSeleccionada =
+      fechaInput.value;
+
+    horaSeleccionada = null;
+
+    document
+      .getElementById("seccionDatos")
+      .classList.add("oculto");
+
+    ocultarMensaje();
+
+    if (
+      !fechaSeleccionada ||
+      !profesionalSeleccionado ||
+      !servicioSeleccionado
+    ) {
+      return;
+    }
+
+    actualizarResumen();
+
+    await cargarHorarios();
+  }
+);
+
+
+async function cargarHorarios() {
+
+  const seccion =
+    document.getElementById("seccionHorarios");
+
+  const contenedor =
+    document.getElementById("horarios");
+
+  seccion.classList.remove("oculto");
+
+  contenedor.innerHTML =
+    '<div class="estado">Buscando horarios...</div>';
+
+  const {
+    data,
+    error
+  } = await db.rpc(
+    "horarios_disponibles",
+    {
+      p_profesional_id:
+        profesionalSeleccionado.id,
+
+      p_servicio_id:
+        servicioSeleccionado.id,
+
+      p_fecha:
+        fechaSeleccionada
+    }
+  );
+
+  if (error) {
+
+    console.error(error);
+
+    contenedor.innerHTML =
+      '<div class="estado">No fue posible consultar los horarios.</div>';
+
+    return;
+  }
+
+  if (!data || data.length === 0) {
+
+    contenedor.innerHTML =
+      '<div class="estado">No hay horarios disponibles para esta fecha.</div>';
+
+    return;
+  }
+
+  contenedor.innerHTML = "";
+
+  data.forEach(item => {
+
+    const hora =
+      item.hora ||
+      item.hora_inicio ||
+      item.inicio;
+
+    if (!hora) return;
+
+    const horaBonita =
+      String(hora).substring(0, 5);
+
+    const boton =
+      document.createElement("button");
+
+    boton.className = "hora";
+
+    boton.textContent = horaBonita;
+
+    boton.addEventListener(
+      "click",
+      () => {
+
+        document
+          .querySelectorAll(".hora")
+          .forEach(item =>
+            item.classList.remove("seleccionado")
+          );
+
+        boton.classList.add("seleccionado");
+
+        horaSeleccionada =
+          horaBonita;
+
+        document
+          .getElementById("seccionDatos")
+          .classList.remove("oculto");
+
+        ocultarMensaje();
+
+        actualizarResumen();
+      }
+    );
+
+    contenedor.appendChild(boton);
+  });
+}
+
+
+function actualizarResumen() {
+
+  const resumen =
+    document.getElementById("resumen");
+
+  if (
+    !servicioSeleccionado ||
+    !profesionalSeleccionado
+  ) {
+
+    resumen.classList.add("oculto");
+    return;
+  }
+
+  document
+    .getElementById("resumenServicio")
+    .textContent =
+      "Servicio: " +
+      servicioSeleccionado.nombre;
+
+  document
+    .getElementById("resumenProfesional")
+    .textContent =
+      "Profesional: " +
+      profesionalSeleccionado.nombre;
+
+  document
+    .getElementById("resumenFecha")
+    .textContent =
+      fechaSeleccionada
+      ? "Fecha: " + fechaSeleccionada
+      : "";
+
+  document
+    .getElementById("resumenHora")
+    .textContent =
+      horaSeleccionada
+      ? "Hora: " + horaSeleccionada
+      : "";
+
+  resumen.classList.remove("oculto");
+}
+
+
+document
+  .getElementById("confirmar")
+  .addEventListener(
+    "click",
+    confirmarCita
+  );
+
+
+async function confirmarCita() {
+
+  const nombre =
+    document
+      .getElementById("nombreCliente")
+      .value
+      .trim();
+
+  const telefono =
+    document
+      .getElementById("telefonoCliente")
+      .value
+      .trim();
+
+  const email =
+    document
+      .getElementById("emailCliente")
+      .value
+      .trim();
+
+  if (!nombre) {
+    mostrarError(
+      "Escribe el nombre del paciente."
+    );
+    return;
+  }
+
+  if (!telefono) {
+    mostrarError(
+      "Escribe un número de teléfono."
+    );
+    return;
+  }
+
+  if (
+    !negocioActual ||
+    !profesionalSeleccionado ||
+    !servicioSeleccionado ||
+    !fechaSeleccionada ||
+    !horaSeleccionada
+  ) {
+
+    mostrarError(
+      "Falta seleccionar algún dato de la cita."
+    );
+
+    return;
+  }
+
+  const boton =
+    document.getElementById("confirmar");
+
+  boton.disabled = true;
+
+  boton.textContent =
+    "Guardando cita...";
+
+  ocultarMensaje();
+
+  const {
+    data,
+    error
+  } = await db.rpc(
+    "crear_cita_publica",
+    {
+      p_negocio_id:
+        negocioActual.id,
+
+      p_profesional_id:
+        profesionalSeleccionado.id,
+
+      p_servicio_id:
+        servicioSeleccionado.id,
+
+      p_nombre:
+        nombre,
+
+      p_telefono:
+        telefono,
+
+      p_email:
+        email || null,
+
+      p_fecha:
+        fechaSeleccionada,
+
+      p_hora_inicio:
+        horaSeleccionada
+    }
+  );
+
+  boton.disabled = false;
+
+  boton.textContent =
+    "Confirmar cita";
+
+  if (error) {
+
+    console.error(error);
+
+    mostrarError(
+      "No fue posible guardar la cita. Intenta nuevamente."
+    );
+
+    return;
+  }
+
+  mostrarExito(
+    "✅ ¡Cita confirmada! Tu cita fue registrada correctamente."
+  );
+
+  document
+    .getElementById("seccionDatos")
+    .classList.add("oculto");
+
+  document
+    .getElementById("nombreCliente")
+    .value = "";
+
+  document
+    .getElementById("telefonoCliente")
+    .value = "";
+
+  document
+    .getElementById("emailCliente")
+    .value = "";
+
+  horaSeleccionada = null;
+
+  actualizarResumen();
+
+  await cargarHorarios();
+}
+
+
+function mostrarExito(texto) {
+
+  const mensaje =
+    document.getElementById("mensaje");
+
+  mensaje.textContent = texto;
+
+  mensaje.className =
+    "mensaje exito";
+}
+
+
+function mostrarError(texto) {
+
+  const mensaje =
+    document.getElementById("mensaje");
+
+  mensaje.textContent = texto;
+
+  mensaje.className =
+    "mensaje error";
+}
+
+
+function ocultarMensaje() {
+
+  document
+    .getElementById("mensaje")
+    .className =
+      "mensaje oculto";
+}
+
+
+cargarAgenda();
+
+</script>
+
+</body>
+</html>

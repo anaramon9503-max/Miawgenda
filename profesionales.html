@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AR Agenda | Profesionales</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+  <div class="encabezado">
+    <h1>AR Agenda</h1>
+    <p>Administración de profesionales</p>
+  </div>
+
+  <div class="tarjeta">
+
+    <!-- ENCABEZADO DEL NEGOCIO -->
+    <div class="barra">
+
+      <div class="negocio">
+        <div class="negocio-label">
+          Negocio
+        </div>
+
+        <div
+          id="nombreNegocio"
+          class="negocio-nombre"
+        >
+          Cargando...
+        </div>
+      </div>
+
+      <div class="correo">
+        Sesión:
+        <span id="correoUsuario"></span>
+      </div>
+
+      <button
+        id="btnVolver"
+        class="cerrar"
+        type="button"
+        style="width:100%; padding:15px; margin-bottom:10px;"
+      >
+        ← Volver a citas
+      </button>
+
+      <button
+        id="btnCerrar"
+        class="cerrar"
+        type="button"
+        style="width:100%; padding:15px;"
+      >
+        Cerrar sesión
+      </button>
+
+    </div>
+
+
+    <!-- AGREGAR / EDITAR PROFESIONAL -->
+    <div class="form-servicio">
+
+      <h3 id="tituloFormularioProfesional">
+        Agregar profesional
+      </h3>
+
+      <form id="formularioProfesional">
+
+        <input
+          type="text"
+          id="profesionalNombre"
+          placeholder="Nombre del profesional"
+          required
+        >
+
+        <input
+          type="text"
+          id="profesionalEspecialidad"
+          placeholder="Especialidad"
+        >
+
+        <button
+          type="submit"
+          class="btn-guardar"
+        >
+          Guardar profesional
+        </button>
+
+        <button
+          type="button"
+          id="btnCancelarEdicion"
+          class="btn-cancelar-edicion oculto"
+        >
+          Cancelar edición
+        </button>
+
+      </form>
+
+    </div>
+
+
+    <!-- LISTA DE PROFESIONALES -->
+    <h2>Mis profesionales</h2>
+
+    <div
+      id="listaProfesionales"
+      class="lista-servicios"
+    >
+      <div class="cargando">
+        Cargando profesionales...
+      </div>
+    </div>
+
+
+    <!-- ASIGNAR SERVICIOS -->
+    <div
+      id="seccionServiciosProfesional"
+      class="form-servicio oculto"
+      style="margin-top:20px;"
+    >
+
+      <h3>
+        Servicios de
+        <span id="nombreProfesionalServicios"></span>
+      </h3>
+
+      <p style="font-size:14px; opacity:.75;">
+        Selecciona los servicios que puede realizar este profesional.
+      </p>
+
+      <div
+        id="listaServiciosProfesional"
+        style="margin-top:15px;"
+      >
+        <div class="cargando">
+          Cargando servicios...
+        </div>
+      </div>
+
+      <button
+        type="button"
+        id="btnGuardarServiciosProfesional"
+        class="btn-guardar"
+        style="margin-top:15px;"
+      >
+        Guardar servicios
+      </button>
+
+      <button
+        type="button"
+        id="btnCerrarServiciosProfesional"
+        class="btn-cancelar-edicion"
+      >
+        Cerrar
+      </button>
+
+    </div>
+
+
+    <!-- ACCESOS -->
+    <div class="form-servicio" style="margin-top:20px;">
+      <h3>Accesos de profesionales</h3>
+      <p style="font-size:14px; opacity:.75;">
+        Los accesos nuevos se crean desde el panel de Súper Admin para mantener segura la llave privada de Supabase.
+      </p>
+    </div>
+
+
+    <!-- MENSAJES -->
+    <div
+      id="mensaje"
+      class="mensaje oculto"
+    ></div>
+
+  </div>
+
+</div>
+
+
+<script src="profesionales.js?v=4"></script>
+
+</body>
+</html>

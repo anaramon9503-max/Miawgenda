@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Horarios | AR Agenda</title>
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+</head>
+
+
+<body>
+
+  <div class="container">
+
+
+    <!-- ENCABEZADO -->
+
+    <header class="header">
+
+      <div>
+
+        <h1>Horarios</h1>
+
+        <p id="nombreNegocio">
+          Cargando...
+        </p>
+
+        <small id="correoUsuario"></small>
+
+      </div>
+
+    </header>
+
+
+    <!-- BOTONES SUPERIORES -->
+
+    <div class="card">
+
+      <button
+        id="btnVolver"
+        type="button"
+      >
+        ← Volver al panel
+      </button>
+
+      <button
+        id="btnCerrar"
+        type="button"
+      >
+        Cerrar sesión
+      </button>
+
+    </div>
+
+
+    <!-- MENSAJES -->
+
+    <div
+      id="mensaje"
+      class="mensaje oculto"
+    ></div>
+
+
+    <!-- CONFIGURAR HORARIO -->
+
+    <section class="card">
+
+      <h2>Agregar horario</h2>
+
+      <p>
+        Selecciona el profesional, servicio,
+        día y la hora que estará disponible.
+      </p>
+
+
+      <!-- PROFESIONAL -->
+
+      <label for="profesionalHorario">
+        Profesional
+      </label>
+
+      <select
+        id="profesionalHorario"
+        required
+      >
+
+        <option value="">
+          Selecciona un profesional
+        </option>
+
+      </select>
+
+
+      <!-- SERVICIO -->
+
+      <label for="servicioHorario">
+        Servicio
+      </label>
+
+      <select
+        id="servicioHorario"
+        required
+      >
+
+        <option value="">
+          Primero selecciona un profesional
+        </option>
+
+      </select>
+
+
+      <!-- DÍA -->
+
+      <label for="diaHorario">
+        Día
+      </label>
+
+      <select
+        id="diaHorario"
+        required
+      >
+
+        <option value="">
+          Selecciona un día
+        </option>
+
+        <option value="1">
+          Lunes
+        </option>
+
+        <option value="2">
+          Martes
+        </option>
+
+        <option value="3">
+          Miércoles
+        </option>
+
+        <option value="4">
+          Jueves
+        </option>
+
+        <option value="5">
+          Viernes
+        </option>
+
+        <option value="6">
+          Sábado
+        </option>
+
+        <option value="7">
+          Domingo
+        </option>
+
+      </select>
+
+
+      <!-- HORA -->
+
+      <label for="horaSlot">
+        Hora disponible
+      </label>
+
+      <input
+        id="horaSlot"
+        type="time"
+        required
+      >
+
+
+      <!-- GUARDAR -->
+
+      <button
+        id="btnGuardarHorario"
+        type="button"
+      >
+        + Agregar horario
+      </button>
+
+    </section>
+
+
+    <!-- HORARIOS CREADOS -->
+
+    <section class="card">
+
+      <h2>Horarios asignados</h2>
+
+      <p>
+        Aquí aparecerán las horas que
+        agregues para el profesional y
+        servicio seleccionados.
+      </p>
+
+
+      <div id="listaHorarios">
+
+        <div class="sin-resultados">
+
+          Selecciona un profesional
+          y un servicio.
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+  </div>
+
+
+  <script src="horarios.js?v=3"></script>
+
+</body>
+
+</html>

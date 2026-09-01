@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR Agenda | Súper Admin</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <style>
+    .sa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.sa-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.sa-tabs button{width:auto}.sa-section{display:none}.sa-section.activa{display:block}.sa-lista{display:grid;gap:12px}.sa-item{border:1px solid #e6e0e8;border-radius:16px;padding:16px;background:#fff}.sa-item h4{margin:0 0 6px}.sa-muted{opacity:.7;font-size:14px}.sa-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.sa-actions button{width:auto;padding:10px 12px}.sa-selector{margin:12px 0}.sa-badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#f1edf3;font-size:12px;font-weight:700}.sa-table{overflow:auto}.sa-table table{width:100%;border-collapse:collapse;min-width:760px}.sa-table th,.sa-table td{padding:10px;border-bottom:1px solid #eee;text-align:left}.sa-top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.sa-top button{width:auto}.sa-help{background:#f7f3f8;padding:12px;border-radius:14px;font-size:14px;margin-top:10px}
+  </style>
+</head>
+<body>
+<div class="contenedor" style="max-width:1100px">
+  <div class="encabezado"><h1>AR Agenda</h1><p>Panel de Súper Admin</p></div>
+  <div class="tarjeta">
+    <div class="sa-top">
+      <div><strong id="saCorreo">Cargando...</strong><div class="sa-muted">Control general del sistema</div></div>
+      <div><button id="btnPanel" class="cerrar" type="button">Ver citas</button> <button id="btnCerrar" class="cerrar" type="button">Cerrar sesión</button></div>
+    </div>
+    <div id="saMensaje" class="mensaje oculto"></div>
+    <div class="sa-tabs">
+      <button data-tab="negocios">🏢 Negocios</button>
+      <button data-tab="usuarios">👤 Usuarios</button>
+      <button data-tab="profesionales">👩‍⚕️ Profesionales</button>
+      <button data-tab="servicios">🛍️ Servicios</button>
+      <button data-tab="horarios">🕐 Horarios</button>
+      <button data-tab="citas">📅 Todas las citas</button>
+    </div>
+
+    <section id="tab-negocios" class="sa-section activa">
+      <div class="sa-grid">
+        <div class="form-servicio"><h3>Crear negocio</h3><form id="formNegocio"><input id="negocioNombre" placeholder="Nombre del negocio" required><button class="btn-guardar">Crear negocio</button></form></div>
+        <div><h3>Negocios</h3><div id="listaNegocios" class="sa-lista"><div class="cargando">Cargando...</div></div></div>
+      </div>
+    </section>
+
+    <section id="tab-usuarios" class="sa-section">
+      <div class="form-servicio">
+        <h3>Crear acceso</h3>
+        <form id="formUsuario">
+          <label>Negocio</label><select id="usuarioNegocio" required></select>
+          <label>Tipo de acceso</label><select id="usuarioRol" required><option value="admin">Administrador del negocio</option><option value="profesional">Profesional</option></select>
+          <input id="usuarioNombre" placeholder="Nombre completo" required>
+          <input id="usuarioEspecialidad" placeholder="Especialidad (solo profesional)">
+          <input id="usuarioCorreo" type="email" placeholder="Correo" required>
+          <input id="usuarioPassword" type="password" minlength="6" placeholder="Contraseña temporal" required>
+          <button class="btn-guardar">Crear usuario y acceso</button>
+        </form>
+        <div class="sa-help">La contraseña se envía al servidor de Vercel y la llave privada de Supabase nunca queda en el navegador.</div>
+      </div>
+    </section>
+
+    <section id="tab-profesionales" class="sa-section">
+      <div class="sa-selector"><label>Negocio</label><select id="profNegocio"></select></div>
+      <div class="sa-grid">
+        <div class="form-servicio"><h3>Agregar profesional</h3><form id="formProfesional"><input id="profNombre" placeholder="Nombre" required><input id="profEspecialidad" placeholder="Especialidad"><button class="btn-guardar">Guardar profesional</button></form></div>
+        <div><h3>Profesionales</h3><div id="listaProfesionalesSA" class="sa-lista"></div></div>
+      </div>
+    </section>
+
+    <section id="tab-servicios" class="sa-section">
+      <div class="sa-selector"><label>Negocio</label><select id="servNegocio"></select></div>
+      <div class="sa-grid">
+        <div class="form-servicio"><h3>Agregar servicio</h3><form id="formServicioSA"><input id="servNombre" placeholder="Nombre" required><input id="servDescripcion" placeholder="Descripción"><input id="servDuracion" type="number" min="5" step="5" value="60" placeholder="Duración"><input id="servPrecio" type="number" min="0" step="0.01" placeholder="Precio"><button class="btn-guardar">Guardar servicio</button></form></div>
+        <div><h3>Servicios</h3><div id="listaServiciosSA" class="sa-lista"></div></div>
+      </div>
+    </section>
+
+    <section id="tab-horarios" class="sa-section">
+      <div class="sa-selector"><label>Negocio</label><select id="horNegocio"></select></div>
+      <div class="form-servicio">
+        <h3>Agregar horario</h3>
+        <form id="formHorarioSA">
+          <label>Profesional</label><select id="horProfesional" required></select>
+          <label>Servicio</label><select id="horServicio" required></select>
+          <label>Día</label><select id="horDia" required><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="7">Domingo</option></select>
+          <label>Hora</label><input id="horHora" type="time" required>
+          <button class="btn-guardar">Agregar horario</button>
+        </form>
+      </div>
+      <h3>Horarios</h3><div id="listaHorariosSA" class="sa-lista"></div>
+    </section>
+
+    <section id="tab-citas" class="sa-section">
+      <div class="sa-selector"><label>Filtrar negocio</label><select id="citasNegocio"><option value="">Todos</option></select></div>
+      <div class="sa-table"><table><thead><tr><th>Fecha</th><th>Hora</th><th>Negocio</th><th>Paciente</th><th>Servicio</th><th>Profesional</th><th>Estado</th></tr></thead><tbody id="tablaCitasSA"></tbody></table></div>
+    </section>
+  </div>
+</div>
+<script src="admin-common.js"></script>
+<script src="superadmin.js"></script>
+</body>
+</html>

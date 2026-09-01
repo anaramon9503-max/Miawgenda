@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AR Agenda | Panel</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+  <div class="encabezado">
+    <h1>AR Agenda</h1>
+    <p>Panel de administración</p>
+  </div>
+
+  <div class="tarjeta">
+
+    <!-- LOGIN -->
+    <div id="login">
+
+      <h2>Iniciar sesión</h2>
+
+      <input
+        type="email"
+        id="email"
+        placeholder="Correo electrónico"
+      >
+
+      <input
+        type="password"
+        id="password"
+        placeholder="Contraseña"
+      >
+
+      <button id="btnLogin">
+        Entrar
+      </button>
+
+    </div>
+
+
+    <!-- PANEL -->
+    <div id="panel" class="oculto">
+
+      <div class="barra">
+
+        <div class="negocio">
+
+          <div class="negocio-label">
+            Negocio
+          </div>
+
+          <div
+            id="nombreNegocio"
+            class="negocio-nombre"
+          >
+            Cargando...
+          </div>
+
+        </div>
+
+        <h2>Mis citas 💜</h2>
+
+        <a href="superadmin.html" style="text-decoration:none;">
+          <button type="button" class="cerrar" style="width:100%;padding:15px;margin:10px 0;">
+            👑 Súper Admin
+          </button>
+        </a>
+
+        <div class="correo">
+          Sesión:
+          <span id="correoUsuario"></span>
+        </div>
+
+        <button
+          id="btnCerrar"
+          class="cerrar"
+        >
+          Cerrar sesión
+        </button>
+
+        <a
+          href="servicios.html"
+          style="text-decoration:none;"
+        >
+          <button
+            type="button"
+            class="cerrar"
+            style="
+              width:100%;
+              padding:15px;
+              margin-top:10px;
+            "
+          >
+            🛍️ Administrar servicios
+          </button>
+        </a>
+
+      </div>
+
+
+      <h2 class="titulo-citas">
+        Próximas citas
+      </h2>
+
+      <div
+        id="listaCitas"
+        class="citas"
+      >
+
+        <div class="cargando">
+          Cargando citas...
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- MENSAJES -->
+    <div
+      id="mensaje"
+      class="mensaje oculto"
+    ></div>
+
+  </div>
+
+</div>
+
+
+<script src="panel.js"></script>
+
+</body>
+</html>
