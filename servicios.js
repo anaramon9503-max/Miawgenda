@@ -5,34 +5,39 @@ const $ = (id) => document.getElementById(id);
 let negocioId = null;
 let servicioEditandoId = null;
 
+
 /* =========================
    MENSAJES
 ========================= */
 
 function mostrarMensaje(texto, error = false) {
-  const mensaje = $("mensaje");
+  const el = $("mensaje");
 
-  if (!mensaje) return;
+  if (!el) return;
 
-  mensaje.textContent = texto;
-  mensaje.className = `mensaje ${error ? "error" : "exito"}`;
-  mensaje.classList.remove("oculto");
+  el.textContent = texto;
+  el.className = `mensaje ${error ? "error" : "exito"}`;
+  el.classList.remove("oculto");
 }
 
-function ocultarMensaje() {
-  const mensaje = $("mensaje");
 
-  if (mensaje) {
-    mensaje.classList.add("oculto");
+function ocultarMensaje() {
+  const el = $("mensaje");
+
+  if (el) {
+    el.classList.add("oculto");
   }
 }
 
+
 /* =========================
-   CONTEXTO / NEGOCIO
+   INICIAR PÁGINA
 ========================= */
 
 async function iniciar() {
+
   try {
+
     const ctx = await AR.contexto();
 
     if (!ctx) {
@@ -40,11 +45,17 @@ async function iniciar() {
       return;
     }
 
+
+    /* Obtener negocio */
+
     negocioId =
       ctx.negocio_id ||
       ctx.negocioId ||
       ctx.negocio?.id ||
       ctx.membresia?.negocio_id;
+
+
+    /* Obtener nombre negocio */
 
     const nombreNegocio =
       ctx.negocio?.nombre ||
@@ -52,48 +63,70 @@ async function iniciar() {
       ctx.negocio_nombre ||
       "Mi negocio";
 
+
+    /* Obtener correo */
+
     const correo =
       ctx.usuario?.email ||
       ctx.user?.email ||
       ctx.email ||
       "";
 
+
     if (!negocioId) {
-      throw new Error("No se pudo identificar el negocio.");
+      throw new Error(
+        "No se pudo identificar el negocio de esta cuenta."
+      );
     }
+
 
     if ($("nombreNegocio")) {
       $("nombreNegocio").textContent = nombreNegocio;
     }
 
-    if ($("correoSesion")) {
-      $("correoSesion").textContent = correo;
+
+    if ($("correoUsuario")) {
+      $("correoUsuario").textContent = correo;
     }
+
 
     await cargarServicios();
 
+
   } catch (error) {
-    console.error("Error al iniciar servicios:", error);
+
+    console.error(
+      "Error al iniciar servicios:",
+      error
+    );
+
 
     if ($("nombreNegocio")) {
       $("nombreNegocio").textContent = "Error";
     }
 
+
     mostrarMensaje(
-      error.message || "No fue posible cargar los servicios.",
+      error.message ||
+      "No fue posible cargar los servicios.",
       true
     );
+
   }
+
 }
+
 
 /* =========================
    CARGAR SERVICIOS
 ========================= */
 
 async function cargarServicios() {
+
   const lista = $("listaServicios");
 
   if (!lista) return;
+
 
   lista.innerHTML = `
     <div class="cargando">
@@ -101,61 +134,99 @@ async function cargarServicios() {
     </div>
   `;
 
+
   const { data, error } = await db
     .from("servicios")
     .select("*")
     .eq("negocio_id", negocioId)
-    .order("nombre", { ascending: true });
+    .order("nombre", {
+      ascending: true
+    });
+
 
   if (error) {
-    console.error(error);
+
+    console.error(
+      "Error cargando servicios:",
+      error
+    );
+
     lista.innerHTML = "";
+
     mostrarMensaje(
-      "No se pudieron cargar los servicios: " + error.message,
+      "No se pudieron cargar los servicios: " +
+      error.message,
       true
     );
+
     return;
   }
 
+
   if (!data || data.length === 0) {
+
     lista.innerHTML = `
       <div class="sin-datos">
         Aún no tienes servicios registrados.
       </div>
     `;
+
     return;
   }
 
+
   lista.innerHTML = "";
 
+
   data.forEach((servicio) => {
-    const tarjeta = document.createElement("div");
-    tarjeta.className = "servicio-card";
+
+    const tarjeta =
+      document.createElement("div");
+
+    tarjeta.className =
+      "servicio-card";
+
 
     tarjeta.innerHTML = `
+
       <div class="servicio-info">
 
-        <h3>${escapar(servicio.nombre)}</h3>
+        <h3>
+          ${escapar(servicio.nombre)}
+        </h3>
 
         ${
           servicio.descripcion
-            ? `<p>${escapar(servicio.descripcion)}</p>`
+            ? `
+              <p>
+                ${escapar(servicio.descripcion)}
+              </p>
+            `
             : ""
         }
 
         <div class="servicio-detalles">
-          <span>⏱️ ${servicio.duracion_minutos} min</span>
-          <span>💲${Number(servicio.precio || 0).toFixed(2)}</span>
+
+          <span>
+            ⏱️ ${servicio.duracion_minutos} min
+          </span>
+
+          <span>
+            💲${Number(
+              servicio.precio || 0
+            ).toFixed(2)}
+          </span>
+
         </div>
 
       </div>
+
 
       <div class="servicio-acciones">
 
         <button
           type="button"
           class="btn-editar"
-          data-id="${servicio.id}"
         >
           ✏️ Editar
         </button>
@@ -163,180 +234,335 @@ async function cargarServicios() {
         <button
           type="button"
           class="btn-eliminar"
-          data-id="${servicio.id}"
         >
           🗑️ Eliminar
         </button>
 
       </div>
+
     `;
+
 
     tarjeta
       .querySelector(".btn-editar")
-      .addEventListener("click", () => editarServicio(servicio));
+      .addEventListener(
+        "click",
+        () => editarServicio(servicio)
+      );
+
 
     tarjeta
       .querySelector(".btn-eliminar")
-      .addEventListener("click", () =>
-        eliminarServicio(servicio.id, servicio.nombre)
+      .addEventListener(
+        "click",
+        () =>
+          eliminarServicio(
+            servicio.id,
+            servicio.nombre
+          )
       );
 
+
     lista.appendChild(tarjeta);
+
   });
+
 }
+
 
 /* =========================
    GUARDAR SERVICIO
 ========================= */
 
 async function guardarServicio(event) {
+
   event.preventDefault();
 
   ocultarMensaje();
 
-  const nombre = $("servicioNombre")?.value.trim();
-  const descripcion = $("servicioDescripcion")?.value.trim() || "";
-  const duracion = Number($("servicioDuracion")?.value);
-  const precio = Number($("servicioPrecio")?.value);
+
+  const nombre =
+    $("servicioNombre")
+      ?.value
+      .trim();
+
+
+  const descripcion =
+    $("servicioDescripcion")
+      ?.value
+      .trim() || "";
+
+
+  const duracion =
+    Number(
+      $("servicioDuracion")?.value
+    );
+
+
+  const precio =
+    Number(
+      $("servicioPrecio")?.value
+    );
+
 
   if (!nombre) {
-    mostrarMensaje("Escribe el nombre del servicio.", true);
+
+    mostrarMensaje(
+      "Escribe el nombre del servicio.",
+      true
+    );
+
     return;
   }
+
 
   if (!duracion || duracion < 1) {
-    mostrarMensaje("La duración debe ser mayor a 0 minutos.", true);
+
+    mostrarMensaje(
+      "La duración debe ser mayor a 0 minutos.",
+      true
+    );
+
     return;
   }
 
-  if (Number.isNaN(precio) || precio < 0) {
-    mostrarMensaje("Escribe un precio válido.", true);
+
+  if (
+    Number.isNaN(precio) ||
+    precio < 0
+  ) {
+
+    mostrarMensaje(
+      "Escribe un precio válido.",
+      true
+    );
+
     return;
   }
 
-  const datos = {
-    negocio_id: negocioId,
-    nombre,
-    descripcion,
-    duracion_minutos: duracion,
-    precio,
-    activo: true
-  };
 
   try {
+
+
+    /* EDITAR */
 
     if (servicioEditandoId) {
 
       const { error } = await db
         .from("servicios")
         .update({
-          nombre,
-          descripcion,
+          nombre: nombre,
+          descripcion: descripcion,
           duracion_minutos: duracion,
-          precio
+          precio: precio
         })
-        .eq("id", servicioEditandoId)
-        .eq("negocio_id", negocioId);
+        .eq(
+          "id",
+          servicioEditandoId
+        )
+        .eq(
+          "negocio_id",
+          negocioId
+        );
 
-      if (error) throw error;
 
-      mostrarMensaje("Servicio actualizado correctamente.");
+      if (error) {
+        throw error;
+      }
 
-    } else {
+
+      mostrarMensaje(
+        "Servicio actualizado correctamente."
+      );
+
+    }
+
+
+    /* CREAR */
+
+    else {
 
       const { error } = await db
         .from("servicios")
-        .insert(datos);
+        .insert({
+          negocio_id: negocioId,
+          nombre: nombre,
+          descripcion: descripcion,
+          duracion_minutos: duracion,
+          precio: precio,
+          activo: true
+        });
 
-      if (error) throw error;
 
-      mostrarMensaje("Servicio guardado correctamente.");
+      if (error) {
+        throw error;
+      }
+
+
+      mostrarMensaje(
+        "Servicio guardado correctamente."
+      );
+
     }
+
 
     limpiarFormulario();
 
     await cargarServicios();
 
+
   } catch (error) {
-    console.error(error);
+
+    console.error(
+      "Error guardando servicio:",
+      error
+    );
+
 
     mostrarMensaje(
-      "No se pudo guardar el servicio: " + error.message,
+      "No se pudo guardar el servicio: " +
+      error.message,
       true
     );
+
   }
+
 }
 
+
 /* =========================
-   EDITAR
+   EDITAR SERVICIO
 ========================= */
 
 function editarServicio(servicio) {
-  servicioEditandoId = servicio.id;
 
-  $("servicioNombre").value = servicio.nombre || "";
-  $("servicioDescripcion").value = servicio.descripcion || "";
-  $("servicioDuracion").value = servicio.duracion_minutos || 60;
-  $("servicioPrecio").value = servicio.precio || 0;
+  servicioEditandoId =
+    servicio.id;
+
+
+  $("servicioNombre").value =
+    servicio.nombre || "";
+
+
+  $("servicioDescripcion").value =
+    servicio.descripcion || "";
+
+
+  $("servicioDuracion").value =
+    servicio.duracion_minutos || 60;
+
+
+  $("servicioPrecio").value =
+    servicio.precio || 0;
+
+
+  $("tituloFormularioServicio")
+    .textContent =
+    "Editar servicio";
+
 
   const botonGuardar =
-    $("formServicio")?.querySelector('button[type="submit"]');
+    $("formularioServicio")
+      ?.querySelector(
+        'button[type="submit"]'
+      );
+
 
   if (botonGuardar) {
-    botonGuardar.textContent = "Guardar cambios";
+
+    botonGuardar.textContent =
+      "Guardar cambios";
+
   }
 
-  const cancelar = $("btnCancelarEdicion");
 
-  if (cancelar) {
-    cancelar.classList.remove("oculto");
-  }
+  $("btnCancelarEdicion")
+    ?.classList
+    .remove("oculto");
+
 
   window.scrollTo({
     top: 0,
     behavior: "smooth"
   });
+
 }
 
+
 /* =========================
-   CANCELAR EDICIÓN
+   LIMPIAR FORMULARIO
 ========================= */
 
 function limpiarFormulario() {
+
   servicioEditandoId = null;
 
-  if ($("formServicio")) {
-    $("formServicio").reset();
-  }
+
+  $("formularioServicio")
+    ?.reset();
+
 
   if ($("servicioDuracion")) {
-    $("servicioDuracion").value = 60;
+
+    $("servicioDuracion").value =
+      60;
+
   }
+
+
+  if (
+    $("tituloFormularioServicio")
+  ) {
+
+    $("tituloFormularioServicio")
+      .textContent =
+      "Agregar servicio";
+
+  }
+
 
   const botonGuardar =
-    $("formServicio")?.querySelector('button[type="submit"]');
+    $("formularioServicio")
+      ?.querySelector(
+        'button[type="submit"]'
+      );
+
 
   if (botonGuardar) {
-    botonGuardar.textContent = "Guardar servicio";
+
+    botonGuardar.textContent =
+      "Guardar servicio";
+
   }
 
-  if ($("btnCancelarEdicion")) {
-    $("btnCancelarEdicion").classList.add("oculto");
-  }
+
+  $("btnCancelarEdicion")
+    ?.classList
+    .add("oculto");
+
 }
 
+
 /* =========================
-   ELIMINAR
+   ELIMINAR SERVICIO
 ========================= */
 
-async function eliminarServicio(id, nombre) {
-  const confirmar = window.confirm(
-    `¿Eliminar el servicio "${nombre}"?`
-  );
+async function eliminarServicio(
+  id,
+  nombre
+) {
+
+  const confirmar =
+    window.confirm(
+      `¿Eliminar el servicio "${nombre}"?`
+    );
+
 
   if (!confirmar) return;
 
+
   ocultarMensaje();
+
 
   try {
 
@@ -344,64 +570,113 @@ async function eliminarServicio(id, nombre) {
       .from("servicios")
       .delete()
       .eq("id", id)
-      .eq("negocio_id", negocioId);
+      .eq(
+        "negocio_id",
+        negocioId
+      );
 
-    if (error) throw error;
 
-    mostrarMensaje("Servicio eliminado correctamente.");
+    if (error) {
+      throw error;
+    }
+
+
+    mostrarMensaje(
+      "Servicio eliminado correctamente."
+    );
+
 
     await cargarServicios();
 
+
   } catch (error) {
-    console.error(error);
+
+    console.error(
+      "Error eliminando servicio:",
+      error
+    );
+
 
     mostrarMensaje(
-      "No se pudo eliminar el servicio: " + error.message,
+      "No se pudo eliminar el servicio: " +
+      error.message,
       true
     );
+
   }
+
 }
 
+
 /* =========================
-   SEGURIDAD PARA TEXTO
+   ESCAPAR TEXTO
 ========================= */
 
 function escapar(texto) {
+
   return String(texto ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+
 }
 
+
 /* =========================
-   BOTONES
+   EVENTOS
 ========================= */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
 
-  $("formServicio")?.addEventListener(
-    "submit",
-    guardarServicio
-  );
 
-  $("btnCancelarEdicion")?.addEventListener(
-    "click",
-    limpiarFormulario
-  );
+    $("formularioServicio")
+      ?.addEventListener(
+        "submit",
+        guardarServicio
+      );
 
-  $("btnVolver")?.addEventListener("click", () => {
-    location.href = "panel.html";
-  });
 
-  $("btnCerrarSesion")?.addEventListener(
-    "click",
-    async () => {
-      await db.auth.signOut();
-      location.href = "index.html";
-    }
-  );
+    $("btnCancelarEdicion")
+      ?.addEventListener(
+        "click",
+        limpiarFormulario
+      );
 
-  iniciar();
-});
+
+    $("btnVolver")
+      ?.addEventListener(
+        "click",
+        () => {
+
+          location.href =
+            "panel.html";
+
+        }
+      );
+
+
+    $("btnCerrar")
+      ?.addEventListener(
+        "click",
+        async () => {
+
+          await db.auth.signOut();
+
+          location.href =
+            "index.html";
+
+        }
+      );
+
+
+    iniciar();
+
+  }
+);
