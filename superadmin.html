@@ -3,93 +3,1144 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>AR Agenda | Súper Admin</title>
+
   <link rel="stylesheet" href="style.css">
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
+
   <style>
-    .sa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.sa-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.sa-tabs button{width:auto}.sa-section{display:none}.sa-section.activa{display:block}.sa-lista{display:grid;gap:12px}.sa-item{border:1px solid #e6e0e8;border-radius:16px;padding:16px;background:#fff}.sa-item h4{margin:0 0 6px}.sa-muted{opacity:.7;font-size:14px}.sa-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.sa-actions button{width:auto;padding:10px 12px}.sa-selector{margin:12px 0}.sa-badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#f1edf3;font-size:12px;font-weight:700}.sa-table{overflow:auto}.sa-table table{width:100%;border-collapse:collapse;min-width:760px}.sa-table th,.sa-table td{padding:10px;border-bottom:1px solid #eee;text-align:left}.sa-top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.sa-top button{width:auto}.sa-help{background:#f7f3f8;padding:12px;border-radius:14px;font-size:14px;margin-top:10px}
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      background:
+        linear-gradient(
+          180deg,
+          #f1eaff 0px,
+          #faf8ff 190px,
+          #f8f8fb 420px
+        );
+      color:#29262f;
+    }
+
+    .sa-app{
+      max-width:1100px;
+      margin:auto;
+      padding:22px 16px 110px;
+    }
+
+    /* HEADER */
+
+    .sa-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      margin-bottom:24px;
+    }
+
+    .sa-brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .sa-logo{
+      width:48px;
+      height:48px;
+      border-radius:16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#7b55da;
+      color:white;
+      font-size:20px;
+      font-weight:800;
+      box-shadow:0 8px 22px rgba(123,85,218,.22);
+    }
+
+    .sa-brand h1{
+      margin:0;
+      font-size:24px;
+      line-height:1.1;
+      color:#2e2638;
+    }
+
+    .sa-brand p{
+      margin:4px 0 0;
+      font-size:13px;
+      color:#7c7388;
+    }
+
+    .sa-profile{
+      width:42px;
+      height:42px;
+      border-radius:50%;
+      border:1px solid #d8d1df;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:18px;
+      box-shadow:0 5px 15px rgba(0,0,0,.06);
+    }
+
+    /* BIENVENIDA */
+
+    .sa-welcome{
+      background:rgba(255,255,255,.86);
+      border:1px solid #ddd4e9;
+      border-radius:24px;
+      padding:20px;
+      margin-bottom:18px;
+      box-shadow:
+        0 10px 30px rgba(70,50,90,.06);
+    }
+
+    .sa-welcome-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+    }
+
+    .sa-welcome small{
+      color:#8a8194;
+      font-size:12px;
+    }
+
+    .sa-welcome h2{
+      margin:4px 0 4px;
+      font-size:22px;
+      color:#302837;
+    }
+
+    .sa-muted{
+      color:#8b8391;
+      font-size:13px;
+    }
+
+    .sa-top-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .sa-mini-btn{
+      border:none;
+      background:#fff;
+      color:#62586d;
+      border:1px solid #ddd6e4;
+      border-radius:12px;
+      padding:9px 12px;
+      width:auto;
+      font-size:13px;
+      cursor:pointer;
+    }
+
+    .sa-mini-btn:hover{
+      background:#f5f0fb;
+    }
+
+    /* MENSAJE */
+
+    #saMensaje{
+      margin-bottom:16px;
+    }
+
+    /* TABS SUPERIORES EN DESKTOP */
+
+    .sa-tabs{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin:18px 0;
+    }
+
+    .sa-tabs button{
+      width:auto;
+      border:none;
+      border-radius:999px;
+      padding:10px 14px;
+      background:#ffffff;
+      color:#625a68;
+      border:1px solid #ddd7e3;
+      font-size:13px;
+      cursor:pointer;
+      transition:.2s;
+    }
+
+    .sa-tabs button:hover{
+      background:#f3edfb;
+      color:#6d43cd;
+    }
+
+    .sa-tabs button.activo{
+      background:#7b55da;
+      color:white;
+      border-color:#7b55da;
+    }
+
+    /* SECCIONES */
+
+    .sa-section{
+      display:none;
+    }
+
+    .sa-section.activa{
+      display:block;
+      animation:saFade .22s ease;
+    }
+
+    @keyframes saFade{
+      from{
+        opacity:0;
+        transform:translateY(5px);
+      }
+      to{
+        opacity:1;
+        transform:translateY(0);
+      }
+    }
+
+    .sa-section-title{
+      margin:6px 0 15px;
+    }
+
+    .sa-section-title h2{
+      margin:0;
+      font-size:20px;
+      color:#302838;
+    }
+
+    .sa-section-title p{
+      margin:5px 0 0;
+      font-size:13px;
+      color:#8c8491;
+    }
+
+    /* GRID */
+
+    .sa-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:16px;
+    }
+
+    /* TARJETAS */
+
+    .sa-card,
+    .form-servicio{
+      background:#fff;
+      border:1px solid #ddd8e2;
+      border-radius:22px;
+      padding:18px;
+      box-shadow:
+        0 8px 24px rgba(55,45,70,.05);
+    }
+
+    .sa-card h3,
+    .form-servicio h3{
+      margin:0 0 14px;
+      font-size:17px;
+      color:#332b3b;
+    }
+
+    .sa-lista{
+      display:grid;
+      gap:12px;
+    }
+
+    .sa-item{
+      border:1px solid #ded8e4;
+      border-radius:17px;
+      padding:15px;
+      background:#fff;
+      box-shadow:
+        0 4px 14px rgba(0,0,0,.03);
+    }
+
+    .sa-item h4{
+      margin:0 0 6px;
+      color:#332d39;
+    }
+
+    /* FORMULARIOS */
+
+    .sa-app label{
+      display:block;
+      font-size:12px;
+      font-weight:700;
+      color:#675e70;
+      margin:12px 0 6px;
+    }
+
+    .sa-app input,
+    .sa-app select{
+      width:100%;
+      border:1px solid #d9d3df;
+      background:#fff;
+      color:#312c36;
+      border-radius:13px;
+      padding:13px;
+      margin-bottom:8px;
+      font-size:14px;
+      outline:none;
+      transition:.2s;
+    }
+
+    .sa-app input:focus,
+    .sa-app select:focus{
+      border-color:#9b7ae6;
+      box-shadow:0 0 0 3px rgba(155,122,230,.13);
+    }
+
+    .btn-guardar{
+      width:100%;
+      border:none;
+      border-radius:14px;
+      padding:13px 16px;
+      margin-top:8px;
+      background:#7b55da;
+      color:white;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:
+        0 7px 18px rgba(123,85,218,.18);
+    }
+
+    .btn-guardar:hover{
+      background:#6d48c9;
+    }
+
+    /* SELECTORES */
+
+    .sa-selector{
+      background:#fff;
+      border:1px solid #ddd8e2;
+      border-radius:18px;
+      padding:14px;
+      margin-bottom:15px;
+      box-shadow:0 6px 18px rgba(0,0,0,.03);
+    }
+
+    .sa-selector label{
+      margin-top:0;
+    }
+
+    /* BADGES */
+
+    .sa-badge{
+      display:inline-block;
+      padding:5px 9px;
+      border-radius:999px;
+      background:#f0eafb;
+      color:#6847b5;
+      font-size:11px;
+      font-weight:700;
+    }
+
+    .sa-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+
+    .sa-actions button{
+      width:auto;
+      padding:9px 11px;
+      border:none;
+      border-radius:10px;
+      font-size:12px;
+      background:#f1edf6;
+      color:#574f60;
+      cursor:pointer;
+    }
+
+    /* AYUDA */
+
+    .sa-help{
+      background:#f5f1fa;
+      color:#756d7c;
+      padding:12px;
+      border-radius:13px;
+      font-size:12px;
+      margin-top:12px;
+      line-height:1.45;
+    }
+
+    /* TABLA */
+
+    .sa-table{
+      overflow:auto;
+      background:#fff;
+      border:1px solid #ddd8e2;
+      border-radius:18px;
+      box-shadow:0 6px 20px rgba(0,0,0,.03);
+    }
+
+    .sa-table table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:760px;
+    }
+
+    .sa-table th{
+      font-size:12px;
+      color:#726a79;
+      background:#faf8fc;
+    }
+
+    .sa-table th,
+    .sa-table td{
+      padding:12px;
+      border-bottom:1px solid #eeeaf1;
+      text-align:left;
+    }
+
+    /* BOTTOM NAV */
+
+    .sa-bottom-nav{
+      position:fixed;
+      left:50%;
+      transform:translateX(-50%);
+      bottom:14px;
+      width:calc(100% - 24px);
+      max-width:560px;
+
+      display:flex;
+      justify-content:space-around;
+      align-items:center;
+
+      background:rgba(255,255,255,.95);
+      backdrop-filter:blur(12px);
+
+      border:1px solid #ddd6e5;
+      border-radius:20px;
+
+      padding:8px 6px;
+
+      box-shadow:
+        0 12px 40px rgba(60,45,80,.18);
+
+      z-index:1000;
+    }
+
+    .sa-bottom-nav button{
+      border:none;
+      background:transparent;
+      color:#807687;
+      padding:7px 9px;
+      border-radius:12px;
+      width:auto;
+      min-width:54px;
+      font-size:10px;
+      cursor:pointer;
+    }
+
+    .sa-bottom-nav button span{
+      display:block;
+      font-size:18px;
+      margin-bottom:2px;
+    }
+
+    .sa-bottom-nav button.activo{
+      background:#7b55da;
+      color:white;
+    }
+
+    /* RESPONSIVE */
+
+    @media(max-width:650px){
+
+      .sa-app{
+        padding:16px 13px 105px;
+      }
+
+      .sa-brand h1{
+        font-size:21px;
+      }
+
+      .sa-welcome{
+        padding:17px;
+      }
+
+      .sa-welcome-top{
+        display:block;
+      }
+
+      .sa-top-actions{
+        margin-top:14px;
+      }
+
+      .sa-grid{
+        grid-template-columns:1fr;
+      }
+
+      .sa-tabs{
+        display:none;
+      }
+
+      .sa-card,
+      .form-servicio{
+        border-radius:18px;
+        padding:15px;
+      }
+
+      .sa-bottom-nav{
+        display:flex;
+      }
+    }
+
+    @media(min-width:651px){
+      .sa-bottom-nav{
+        display:none;
+      }
+    }
+
   </style>
 </head>
+
 <body>
-<div class="contenedor" style="max-width:1100px">
-  <div class="encabezado"><h1>AR Agenda</h1><p>Panel de Súper Admin</p></div>
-  <div class="tarjeta">
-    <div class="sa-top">
-      <div><strong id="saCorreo">Cargando...</strong><div class="sa-muted">Control general del sistema</div></div>
-      <div><button id="btnPanel" class="cerrar" type="button">Ver citas</button> <button id="btnCerrar" class="cerrar" type="button">Cerrar sesión</button></div>
+
+<div class="sa-app">
+
+  <!-- HEADER -->
+
+  <header class="sa-header">
+
+    <div class="sa-brand">
+
+      <div class="sa-logo">
+        AR
+      </div>
+
+      <div>
+        <h1>AR Agenda</h1>
+        <p>Súper Admin</p>
+      </div>
+
     </div>
-    <div id="saMensaje" class="mensaje oculto"></div>
-    <div class="sa-tabs">
-      <button data-tab="negocios">🏢 Negocios</button>
-      <button data-tab="usuarios">👤 Usuarios</button>
-      <button data-tab="profesionales">👩‍⚕️ Profesionales</button>
-      <button data-tab="servicios">🛍️ Servicios</button>
-      <button data-tab="horarios">🕐 Horarios</button>
-      <button data-tab="citas">📅 Todas las citas</button>
+
+    <div class="sa-profile">
+      👑
     </div>
 
-    <section id="tab-negocios" class="sa-section activa">
-      <div class="sa-grid">
-        <div class="form-servicio"><h3>Crear negocio</h3><form id="formNegocio"><input id="negocioNombre" placeholder="Nombre del negocio" required><button class="btn-guardar">Crear negocio</button></form></div>
-        <div><h3>Negocios</h3><div id="listaNegocios" class="sa-lista"><div class="cargando">Cargando...</div></div></div>
-      </div>
-    </section>
+  </header>
 
-    <section id="tab-usuarios" class="sa-section">
-      <div class="form-servicio">
-        <h3>Crear acceso</h3>
-        <form id="formUsuario">
-          <label>Negocio</label><select id="usuarioNegocio" required></select>
-          <label>Tipo de acceso</label><select id="usuarioRol" required><option value="admin">Administrador del negocio</option><option value="profesional">Profesional</option></select>
-          <input id="usuarioNombre" placeholder="Nombre completo" required>
-          <input id="usuarioEspecialidad" placeholder="Especialidad (solo profesional)">
-          <input id="usuarioCorreo" type="email" placeholder="Correo" required>
-          <input id="usuarioPassword" type="password" minlength="6" placeholder="Contraseña temporal" required>
-          <button class="btn-guardar">Crear usuario y acceso</button>
-        </form>
-        <div class="sa-help">La contraseña se envía al servidor de Vercel y la llave privada de Supabase nunca queda en el navegador.</div>
-      </div>
-    </section>
 
-    <section id="tab-profesionales" class="sa-section">
-      <div class="sa-selector"><label>Negocio</label><select id="profNegocio"></select></div>
-      <div class="sa-grid">
-        <div class="form-servicio"><h3>Agregar profesional</h3><form id="formProfesional"><input id="profNombre" placeholder="Nombre" required><input id="profEspecialidad" placeholder="Especialidad"><button class="btn-guardar">Guardar profesional</button></form></div>
-        <div><h3>Profesionales</h3><div id="listaProfesionalesSA" class="sa-lista"></div></div>
-      </div>
-    </section>
+  <!-- BIENVENIDA -->
 
-    <section id="tab-servicios" class="sa-section">
-      <div class="sa-selector"><label>Negocio</label><select id="servNegocio"></select></div>
-      <div class="sa-grid">
-        <div class="form-servicio"><h3>Agregar servicio</h3><form id="formServicioSA"><input id="servNombre" placeholder="Nombre" required><input id="servDescripcion" placeholder="Descripción"><input id="servDuracion" type="number" min="5" step="5" value="60" placeholder="Duración"><input id="servPrecio" type="number" min="0" step="0.01" placeholder="Precio"><button class="btn-guardar">Guardar servicio</button></form></div>
-        <div><h3>Servicios</h3><div id="listaServiciosSA" class="sa-lista"></div></div>
-      </div>
-    </section>
+  <div class="sa-welcome">
 
-    <section id="tab-horarios" class="sa-section">
-      <div class="sa-selector"><label>Negocio</label><select id="horNegocio"></select></div>
-      <div class="form-servicio">
-        <h3>Agregar horario</h3>
-        <form id="formHorarioSA">
-          <label>Profesional</label><select id="horProfesional" required></select>
-          <label>Servicio</label><select id="horServicio" required></select>
-          <label>Día</label><select id="horDia" required><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="7">Domingo</option></select>
-          <label>Hora</label><input id="horHora" type="time" required>
-          <button class="btn-guardar">Agregar horario</button>
-        </form>
-      </div>
-      <h3>Horarios</h3><div id="listaHorariosSA" class="sa-lista"></div>
-    </section>
+    <div class="sa-welcome-top">
 
-    <section id="tab-citas" class="sa-section">
-      <div class="sa-selector"><label>Filtrar negocio</label><select id="citasNegocio"><option value="">Todos</option></select></div>
-      <div class="sa-table"><table><thead><tr><th>Fecha</th><th>Hora</th><th>Negocio</th><th>Paciente</th><th>Servicio</th><th>Profesional</th><th>Estado</th></tr></thead><tbody id="tablaCitasSA"></tbody></table></div>
-    </section>
+      <div>
+
+        <small>Bienvenida</small>
+
+        <h2 id="saCorreo">
+          Cargando...
+        </h2>
+
+        <div class="sa-muted">
+          Control general del sistema
+        </div>
+
+      </div>
+
+      <div class="sa-top-actions">
+
+        <button
+          id="btnPanel"
+          class="sa-mini-btn"
+          type="button"
+        >
+          📅 Ver citas
+        </button>
+
+        <button
+          id="btnCerrar"
+          class="sa-mini-btn"
+          type="button"
+        >
+          Salir
+        </button>
+
+      </div>
+
+    </div>
+
   </div>
+
+
+  <!-- MENSAJE -->
+
+  <div
+    id="saMensaje"
+    class="mensaje oculto"
+  ></div>
+
+
+  <!-- TABS DESKTOP -->
+
+  <div class="sa-tabs">
+
+    <button data-tab="negocios">
+      🏢 Negocios
+    </button>
+
+    <button data-tab="usuarios">
+      👤 Usuarios
+    </button>
+
+    <button data-tab="profesionales">
+      👩‍⚕️ Profesionales
+    </button>
+
+    <button data-tab="servicios">
+      🛍️ Servicios
+    </button>
+
+    <button data-tab="horarios">
+      🕐 Horarios
+    </button>
+
+    <button data-tab="citas">
+      📅 Citas
+    </button>
+
+  </div>
+
+
+  <!-- NEGOCIOS -->
+
+  <section
+    id="tab-negocios"
+    class="sa-section activa"
+  >
+
+    <div class="sa-section-title">
+      <h2>Negocios</h2>
+      <p>Administra los negocios registrados.</p>
+    </div>
+
+    <div class="sa-grid">
+
+      <div class="form-servicio">
+
+        <h3>Crear negocio</h3>
+
+        <form id="formNegocio">
+
+          <input
+            id="negocioNombre"
+            placeholder="Nombre del negocio"
+            required
+          >
+
+          <button class="btn-guardar">
+            Crear negocio
+          </button>
+
+        </form>
+
+      </div>
+
+
+      <div class="sa-card">
+
+        <h3>Negocios registrados</h3>
+
+        <div
+          id="listaNegocios"
+          class="sa-lista"
+        >
+
+          <div class="cargando">
+            Cargando...
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- USUARIOS -->
+
+  <section
+    id="tab-usuarios"
+    class="sa-section"
+  >
+
+    <div class="sa-section-title">
+
+      <h2>Usuarios</h2>
+
+      <p>
+        Crea accesos para administradores y profesionales.
+      </p>
+
+    </div>
+
+    <div class="form-servicio">
+
+      <h3>Crear acceso</h3>
+
+      <form id="formUsuario">
+
+        <label>Negocio</label>
+
+        <select
+          id="usuarioNegocio"
+          required
+        ></select>
+
+
+        <label>Tipo de acceso</label>
+
+        <select
+          id="usuarioRol"
+          required
+        >
+
+          <option value="admin">
+            Administrador del negocio
+          </option>
+
+          <option value="profesional">
+            Profesional
+          </option>
+
+        </select>
+
+
+        <input
+          id="usuarioNombre"
+          placeholder="Nombre completo"
+          required
+        >
+
+
+        <input
+          id="usuarioEspecialidad"
+          placeholder="Especialidad (solo profesional)"
+        >
+
+
+        <input
+          id="usuarioCorreo"
+          type="email"
+          placeholder="Correo"
+          required
+        >
+
+
+        <input
+          id="usuarioPassword"
+          type="password"
+          minlength="6"
+          placeholder="Contraseña temporal"
+          required
+        >
+
+
+        <button class="btn-guardar">
+          Crear usuario y acceso
+        </button>
+
+      </form>
+
+
+      <div class="sa-help">
+
+        La contraseña se envía de forma segura al servidor y
+        la llave privada de Supabase no queda guardada en el navegador.
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- PROFESIONALES -->
+
+  <section
+    id="tab-profesionales"
+    class="sa-section"
+  >
+
+    <div class="sa-section-title">
+
+      <h2>Profesionales</h2>
+
+      <p>
+        Administra los profesionales de cada negocio.
+      </p>
+
+    </div>
+
+
+    <div class="sa-selector">
+
+      <label>Negocio</label>
+
+      <select id="profNegocio"></select>
+
+    </div>
+
+
+    <div class="sa-grid">
+
+      <div class="form-servicio">
+
+        <h3>Agregar profesional</h3>
+
+        <form id="formProfesional">
+
+          <input
+            id="profNombre"
+            placeholder="Nombre"
+            required
+          >
+
+          <input
+            id="profEspecialidad"
+            placeholder="Especialidad"
+          >
+
+          <button class="btn-guardar">
+            Guardar profesional
+          </button>
+
+        </form>
+
+      </div>
+
+
+      <div class="sa-card">
+
+        <h3>Profesionales</h3>
+
+        <div
+          id="listaProfesionalesSA"
+          class="sa-lista"
+        ></div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- SERVICIOS -->
+
+  <section
+    id="tab-servicios"
+    class="sa-section"
+  >
+
+    <div class="sa-section-title">
+
+      <h2>Servicios</h2>
+
+      <p>
+        Configura los servicios disponibles.
+      </p>
+
+    </div>
+
+
+    <div class="sa-selector">
+
+      <label>Negocio</label>
+
+      <select id="servNegocio"></select>
+
+    </div>
+
+
+    <div class="sa-grid">
+
+      <div class="form-servicio">
+
+        <h3>Agregar servicio</h3>
+
+        <form id="formServicioSA">
+
+          <input
+            id="servNombre"
+            placeholder="Nombre"
+            required
+          >
+
+          <input
+            id="servDescripcion"
+            placeholder="Descripción"
+          >
+
+          <input
+            id="servDuracion"
+            type="number"
+            min="5"
+            step="5"
+            value="60"
+            placeholder="Duración"
+          >
+
+          <input
+            id="servPrecio"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Precio"
+          >
+
+          <button class="btn-guardar">
+            Guardar servicio
+          </button>
+
+        </form>
+
+      </div>
+
+
+      <div class="sa-card">
+
+        <h3>Servicios</h3>
+
+        <div
+          id="listaServiciosSA"
+          class="sa-lista"
+        ></div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- HORARIOS -->
+
+  <section
+    id="tab-horarios"
+    class="sa-section"
+  >
+
+    <div class="sa-section-title">
+
+      <h2>Horarios</h2>
+
+      <p>
+        Define la disponibilidad de cada profesional.
+      </p>
+
+    </div>
+
+
+    <div class="sa-selector">
+
+      <label>Negocio</label>
+
+      <select id="horNegocio"></select>
+
+    </div>
+
+
+    <div class="form-servicio">
+
+      <h3>Agregar horario</h3>
+
+      <form id="formHorarioSA">
+
+        <label>Profesional</label>
+
+        <select
+          id="horProfesional"
+          required
+        ></select>
+
+
+        <label>Servicio</label>
+
+        <select
+          id="horServicio"
+          required
+        ></select>
+
+
+        <label>Día</label>
+
+        <select
+          id="horDia"
+          required
+        >
+
+          <option value="1">Lunes</option>
+          <option value="2">Martes</option>
+          <option value="3">Miércoles</option>
+          <option value="4">Jueves</option>
+          <option value="5">Viernes</option>
+          <option value="6">Sábado</option>
+          <option value="7">Domingo</option>
+
+        </select>
+
+
+        <label>Hora</label>
+
+        <input
+          id="horHora"
+          type="time"
+          required
+        >
+
+
+        <button class="btn-guardar">
+          Agregar horario
+        </button>
+
+      </form>
+
+    </div>
+
+
+    <div
+      class="sa-card"
+      style="margin-top:16px;"
+    >
+
+      <h3>Horarios registrados</h3>
+
+      <div
+        id="listaHorariosSA"
+        class="sa-lista"
+      ></div>
+
+    </div>
+
+  </section>
+
+
+  <!-- CITAS -->
+
+  <section
+    id="tab-citas"
+    class="sa-section"
+  >
+
+    <div class="sa-section-title">
+
+      <h2>Todas las citas</h2>
+
+      <p>
+        Consulta las citas de todos los negocios.
+      </p>
+
+    </div>
+
+
+    <div class="sa-selector">
+
+      <label>Filtrar negocio</label>
+
+      <select id="citasNegocio">
+
+        <option value="">
+          Todos
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <div class="sa-table">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Negocio</th>
+            <th>Paciente</th>
+            <th>Servicio</th>
+            <th>Profesional</th>
+            <th>Estado</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody id="tablaCitasSA"></tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
 </div>
+
+
+<!-- NAVEGACIÓN INFERIOR -->
+
+<nav class="sa-bottom-nav">
+
+  <button
+    data-tab="negocios"
+    class="activo"
+  >
+    <span>🏢</span>
+    Negocios
+  </button>
+
+
+  <button data-tab="usuarios">
+    <span>👤</span>
+    Usuarios
+  </button>
+
+
+  <button data-tab="servicios">
+    <span>🛍️</span>
+    Servicios
+  </button>
+
+
+  <button data-tab="horarios">
+    <span>🕐</span>
+    Horarios
+  </button>
+
+
+  <button data-tab="citas">
+    <span>📅</span>
+    Citas
+  </button>
+
+</nav>
+
+
 <script src="admin-common.js"></script>
 <script src="superadmin.js"></script>
+
 </body>
 </html>
