@@ -1,4 +1,3 @@
-const { db } = window.AR;
 let negocios = [];
 
 const $ = id => document.getElementById(id);
