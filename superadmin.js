@@ -55,6 +55,7 @@ async function init() {
   await cargarNegocios();
 
   await Promise.all([
+    cargarUsuarios(),
     cargarProfesionales(),
     cargarServicios(),
     cargarHorarios(),
@@ -118,6 +119,10 @@ async function cargarNegocios() {
         <div class="sa-item">
           <h4>${AR.escape(n.nombre)}</h4>
           <span class="sa-badge">${n.id}</span>
+          <div class="sa-actions">
+            <button type="button" onclick="editarNegocio('${n.id}', JSON.stringify(n.nombre).replaceAll('\"','&quot;'))">✏️ Editar</button>
+            <button type="button" onclick="eliminarNegocio('${n.id}')">🗑️ Eliminar</button>
+          </div>
         </div>
       `).join("")
     : '<div class="sin-resultados">Todavía no hay negocios.</div>';
@@ -385,7 +390,10 @@ async function cargarProfesionales() {
               : "Inactivo"
           }
         </div>
-
+        <div class="sa-actions">
+          <button type="button" onclick="editarProfesional('${p.id}')">✏️ Editar</button>
+          <button type="button" onclick="eliminarProfesional('${p.id}')">🗑️ Eliminar</button>
+        </div>
       </div>
     `).join("")
     ||
@@ -522,7 +530,10 @@ async function cargarServicios() {
               : "Inactivo"
           }
         </div>
-
+        <div class="sa-actions">
+          <button type="button" onclick="editarServicio('${s.id}')">✏️ Editar</button>
+          <button type="button" onclick="eliminarServicio('${s.id}')">🗑️ Eliminar</button>
+        </div>
       </div>
     `).join("")
     ||
@@ -1075,6 +1086,9 @@ async function cargarHorarios() {
           id:
             h.servicio_id,
 
+          horario_id:
+            h.id,
+
           nombre:
             nombreServicio
 
@@ -1195,12 +1209,8 @@ async function cargarHorarios() {
                     )
                   }
 
-                  ${
-                    AR.escape(
-                      servicio.nombre
-                    )
-                  }
-
+                  ${AR.escape(servicio.nombre)}
+                  <button type="button" title="Eliminar horario" onclick="eliminarHorarioSA('${servicio.horario_id}')" style="border:0;background:transparent;cursor:pointer;padding:0 0 0 3px;color:inherit;">×</button>
                 </span>
 
               `)
@@ -1467,24 +1477,84 @@ async function cargarCitas() {
           }
         </td>
 
+        <td>${AR.escape(c.estado || "")}</td>
         <td>
-          ${
-            AR.escape(
-              c.estado ||
-              ""
-            )
-          }
+          <div class="sa-actions">
+            <button type="button" onclick="editarCitaSA('${c.id}')">✏️ Editar</button>
+            <button type="button" onclick="eliminarCitaSA('${c.id}')">🗑️ Eliminar</button>
+          </div>
         </td>
-
       </tr>
 
     `).join("")
 
     ||
 
-    '<tr><td colspan="7">Sin citas.</td></tr>';
+    '<tr><td colspan="8">Sin citas.</td></tr>';
 }
 
+
+
+/* =========================================================
+   CRUD SÚPER ADMIN
+========================================================= */
+async function editarNegocio(id) {
+  const actual = negocios.find(n => n.id === id);
+  const nombre = prompt("Nombre del negocio:", actual?.nombre || "");
+  if (!nombre?.trim()) return;
+  const {error}=await db.from("negocios").update({nombre:nombre.trim()}).eq("id",id);
+  if(error) return msg(error.message,true); msg("Negocio actualizado."); await cargarNegocios();
+}
+async function eliminarNegocio(id) {
+  if(!confirm("¿Eliminar este negocio? También puede afectar sus datos relacionados.")) return;
+  const {error}=await db.from("negocios").delete().eq("id",id);
+  if(error) return msg("No se pudo eliminar: "+error.message,true); msg("Negocio eliminado."); await cargarNegocios();
+}
+async function editarProfesional(id) {
+  const {data:p,error:e}=await db.from("profesionales").select("nombre,especialidad,activo").eq("id",id).single(); if(e)return msg(e.message,true);
+  const nombre=prompt("Nombre:",p.nombre||""); if(!nombre?.trim())return;
+  const especialidad=prompt("Especialidad:",p.especialidad||"");
+  const {error}=await db.from("profesionales").update({nombre:nombre.trim(),especialidad:especialidad?.trim()||null}).eq("id",id);
+  if(error)return msg(error.message,true); msg("Profesional actualizado."); await cargarProfesionales();
+}
+async function eliminarProfesional(id) {
+  if(!confirm("¿Eliminar este profesional? Si tiene citas relacionadas, Supabase puede impedir el borrado; en ese caso desactívalo desde Editar."))return;
+  const {error}=await db.from("profesionales").delete().eq("id",id); if(error)return msg(error.message,true); msg("Profesional eliminado."); await cargarProfesionales();
+}
+async function editarServicio(id) {
+  const {data:s,error:e}=await db.from("servicios").select("nombre,descripcion,duracion_minutos,precio").eq("id",id).single(); if(e)return msg(e.message,true);
+  const nombre=prompt("Nombre:",s.nombre||""); if(!nombre?.trim())return;
+  const dur=Number(prompt("Duración en minutos:",s.duracion_minutos||60)); if(!dur)return;
+  const precio=prompt("Precio:",s.precio??"");
+  const {error}=await db.from("servicios").update({nombre:nombre.trim(),duracion_minutos:dur,precio:precio===""?null:Number(precio)}).eq("id",id);
+  if(error)return msg(error.message,true); msg("Servicio actualizado."); await cargarServicios();
+}
+async function eliminarServicio(id) { if(!confirm("¿Eliminar este servicio?"))return; const {error}=await db.from("servicios").delete().eq("id",id); if(error)return msg(error.message,true); msg("Servicio eliminado."); await cargarServicios(); }
+async function editarCitaSA(id) {
+  const {data:c,error:e}=await db.from("citas").select("paciente_nombre,fecha,hora_inicio,estado").eq("id",id).single(); if(e)return msg(e.message,true);
+  const paciente=prompt("Paciente:",c.paciente_nombre||""); if(!paciente?.trim())return;
+  const fecha=prompt("Fecha (AAAA-MM-DD):",c.fecha||""); if(!fecha)return;
+  const hora=prompt("Hora (HH:MM):",String(c.hora_inicio||"").slice(0,5)); if(!hora)return;
+  const estado=prompt("Estado: pendiente, confirmada, atendida, cancelada o no_asistio",c.estado||"pendiente");
+  const {error}=await db.from("citas").update({paciente_nombre:paciente.trim(),fecha,hora_inicio:hora+":00",estado}).eq("id",id);
+  if(error)return msg(error.message,true); msg("Cita actualizada."); await cargarCitas();
+}
+async function eliminarCitaSA(id) { if(!confirm("¿Eliminar definitivamente esta cita?"))return; const {error}=await db.from("citas").delete().eq("id",id); if(error)return msg(error.message,true); msg("Cita eliminada."); await cargarCitas(); }
+async function eliminarHorarioSA(id) { if(!confirm("¿Eliminar este horario?"))return; const {error}=await db.from("horarios").delete().eq("id",id); if(error)return msg(error.message,true); msg("Horario eliminado."); await cargarHorarios(); }
+
+async function cargarUsuarios() {
+  const cont=$("listaUsuariosSA"); if(!cont)return;
+  const {data:{session}}=await db.auth.getSession(); if(!session)return;
+  try { const r=await fetch("/api/manage-users",{headers:{Authorization:`Bearer ${session.access_token}`}}); const out=await r.json(); if(!r.ok)throw new Error(out.error||"No se pudieron cargar usuarios");
+    const nm=Object.fromEntries(negocios.map(n=>[n.id,n.nombre]));
+    cont.innerHTML=(out.usuarios||[]).map(u=>`<div class="sa-item"><h4>${AR.escape(u.email||"Usuario")}</h4><div class="sa-muted">${AR.escape(nm[u.negocio_id]||"Negocio")} · ${u.es_admin?"Administrador":u.es_profesional?"Profesional":"Sin rol"} · ${u.activo?"Activo":"Inactivo"}</div><div class="sa-actions"><button type="button" onclick="editarUsuarioSA('${u.usuario_id}','${u.negocio_id}','${u.es_admin?"admin":"profesional"}','${AR.escape(u.email||"")}')">✏️ Editar</button><button type="button" onclick="eliminarUsuarioSA('${u.usuario_id}')">🗑️ Eliminar</button></div></div>`).join("")||'<div class="sin-resultados">Sin usuarios.</div>';
+  } catch(e){cont.innerHTML=`<div class="sin-resultados">${AR.escape(e.message)}</div>`;}
+}
+async function editarUsuarioSA(usuario_id,negocio_id,rol,emailActual){
+  const email=prompt("Correo:",emailActual); if(!email)return; const nuevoRol=prompt("Rol (admin/profesional):",rol); if(!["admin","profesional"].includes(nuevoRol))return msg("Rol no válido.",true); const password=prompt("Nueva contraseña (déjala vacía para conservarla):","");
+  const {data:{session}}=await db.auth.getSession(); const r=await fetch("/api/manage-users",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({usuario_id,negocio_id,rol:nuevoRol,email,password:password||undefined})}); const out=await r.json(); if(!r.ok)return msg(out.error||"No se pudo editar.",true); msg("Usuario actualizado."); await cargarUsuarios();
+}
+async function eliminarUsuarioSA(usuario_id){if(!confirm("¿Eliminar este acceso de usuario?"))return; const {data:{session}}=await db.auth.getSession(); const r=await fetch("/api/manage-users",{method:"DELETE",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({usuario_id})}); const out=await r.json(); if(!r.ok)return msg(out.error||"No se pudo eliminar.",true); msg("Usuario eliminado."); await Promise.all([cargarUsuarios(),cargarProfesionales()]);}
 
 /* =========================================================
    INICIAR

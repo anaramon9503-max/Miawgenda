@@ -269,7 +269,7 @@ async function cargarMiHorario() {
   // Usamos la vista pública de horarios para consulta de solo lectura.
   const { data: horarios, error } =
     await db
-      .from("horarios_publicos")
+      .from("horarios")
       .select(`
         id,
         profesional_id,
@@ -309,9 +309,7 @@ async function cargarMiHorario() {
       </div>
     `;
 
-    mostrarError(
-      "No fue posible cargar tu horario."
-    );
+    // El mensaje se muestra dentro de la tarjeta para evitar duplicarlo.
     return;
   }
 

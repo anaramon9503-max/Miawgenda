@@ -305,14 +305,21 @@ async function cargarAgenda() {
   const contenedorServicios =
     document.getElementById("servicios");
 
-  const {
-    data: negocio,
-    error: errorNegocio
-  } = await db
+  const params = new URLSearchParams(window.location.search);
+  const negocioParametro = params.get("negocio");
+
+  let consultaNegocio = db
     .from("negocios_publicos")
     .select("id, nombre")
-    .eq("nombre", "Negocio de Prueba")
-    .maybeSingle();
+    .order("nombre")
+    .limit(1);
+
+  if (negocioParametro) {
+    consultaNegocio = consultaNegocio.eq("id", negocioParametro);
+  }
+
+  const { data: negociosEncontrados, error: errorNegocio } = await consultaNegocio;
+  const negocio = negociosEncontrados?.[0] || null;
 
   if (errorNegocio || !negocio) {
 
