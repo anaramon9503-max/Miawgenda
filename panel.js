@@ -95,6 +95,9 @@ const accesoSuperAdmin =
 const accesoServicios =
   document.getElementById("accesoServicios");
 
+const accesoProfesionales =
+  document.getElementById("accesoProfesionales");
+
 
 // =====================================================
 // VARIABLES
@@ -384,6 +387,15 @@ async function abrirPanelNormal(user) {
     !esAdmin
   ) {
     accesoServicios.classList.add(
+      "oculto"
+    );
+  }
+
+  if (
+    accesoProfesionales &&
+    !esAdmin
+  ) {
+    accesoProfesionales.classList.add(
       "oculto"
     );
   }
@@ -801,32 +813,41 @@ async function cargarCitas() {
 // =====================================================
 
 function asegurarFiltrosEstado() {
-  if (document.getElementById("filtrosEstadoCitas")) {
+  const existente = document.getElementById("filtrosEstadoCitas");
+
+  if (existente) {
     actualizarFiltroEstadoVisual();
     return;
   }
 
-  const barra = document.createElement("div");
-  barra.id = "filtrosEstadoCitas";
-  barra.className = "filtros-estado-citas";
-  barra.innerHTML = `
-    <button type="button" data-estado="proximas">Próximas</button>
-    <button type="button" data-estado="pendiente">Pendientes</button>
-    <button type="button" data-estado="confirmada">Confirmadas</button>
-    <button type="button" data-estado="atendida">Atendidas</button>
-    <button type="button" data-estado="cancelada">Canceladas</button>
-    <button type="button" data-estado="no_asistio">No asistió</button>
-    <button type="button" data-estado="todas">Todas</button>
+  const contenedor = document.createElement("div");
+  contenedor.id = "filtrosEstadoCitas";
+  contenedor.className = "filtros-estado-citas";
+
+  contenedor.innerHTML = `
+    <label for="selectorEstadoCitas" class="filtro-estado-label">
+      Ver citas
+    </label>
+
+    <select id="selectorEstadoCitas" class="filtro-estado-select">
+      <option value="proximas">Próximas</option>
+      <option value="pendiente">Pendientes</option>
+      <option value="confirmada">Confirmadas</option>
+      <option value="atendida">Atendidas</option>
+      <option value="cancelada">Canceladas</option>
+      <option value="no_asistio">No asistió</option>
+      <option value="todas">Todas</option>
+    </select>
   `;
 
   const referencia = contadorCitas || listaCitas;
-  referencia.parentNode.insertBefore(barra, referencia);
+  referencia.parentNode.insertBefore(contenedor, referencia);
 
-  barra.addEventListener("click", async e => {
-    const boton = e.target.closest("button[data-estado]");
-    if (!boton) return;
-    filtroEstadoActual = boton.dataset.estado;
-    actualizarFiltroEstadoVisual();
+  const selector =
+    document.getElementById("selectorEstadoCitas");
+
+  selector.addEventListener("change", async () => {
+    filtroEstadoActual = selector.value;
     await cargarCitas();
   });
 
@@ -835,14 +856,12 @@ function asegurarFiltrosEstado() {
 }
 
 function actualizarFiltroEstadoVisual() {
-  document
-    .querySelectorAll("#filtrosEstadoCitas button[data-estado]")
-    .forEach(boton => {
-      boton.classList.toggle(
-        "activo",
-        boton.dataset.estado === filtroEstadoActual
-      );
-    });
+  const selector =
+    document.getElementById("selectorEstadoCitas");
+
+  if (selector) {
+    selector.value = filtroEstadoActual;
+  }
 }
 
 function botonesPorEstado(cita) {
@@ -906,27 +925,31 @@ function agregarEstilosCitas() {
   style.id = "estilosEstadosCitas";
   style.textContent = `
     .filtros-estado-citas {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding: 4px 2px 14px;
-      margin: 0 0 8px;
-      scrollbar-width: none;
+      width: 100%;
+      margin: 0 0 14px;
     }
-    .filtros-estado-citas::-webkit-scrollbar { display: none; }
-    .filtros-estado-citas button {
-      flex: 0 0 auto;
-      border: 1px solid #e6e0ee;
-      background: #f7f5f9;
-      border-radius: 999px;
-      padding: 9px 14px;
-      font: inherit;
-      cursor: pointer;
+    .filtro-estado-label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #6f6574;
     }
-    .filtros-estado-citas button.activo {
-      background: #7c4dde;
-      color: white;
-      border-color: #7c4dde;
+    .filtro-estado-select {
+      width: 100%;
+      margin: 0;
+      padding: 12px 14px;
+      border: 1px solid #ddd6df;
+      border-radius: 13px;
+      background: #faf8fb;
+      color: #514458;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: Arial, sans-serif;
+    }
+    .filtro-estado-select:focus {
+      outline: 2px solid #cfc3d4;
+      border-color: #8b7a92;
     }
     .estado {
       display: inline-block;
