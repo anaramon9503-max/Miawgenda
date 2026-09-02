@@ -35,6 +35,7 @@ const seccionProfesionalHorarios = $("seccionProfesionalHorarios");
 const listaMiHorario = $("listaMiHorario");
 const navAdmin = $("navAdmin");
 const navProfesional = $("navProfesional");
+const cargandoRol = $("cargandoRol");
 
 const dias = {
   1: "Lunes",
@@ -80,6 +81,10 @@ btnGuardarHorario?.addEventListener(
   "click",
   guardarHorario
 );
+
+function mostrarVistaResuelta() {
+  cargandoRol?.classList.add("oculto");
+}
 
 async function iniciar() {
   ocultarMensaje();
@@ -138,6 +143,7 @@ async function iniciar() {
     seccionProfesionalHorarios?.classList.add("oculto");
 
     await cargarProfesionales();
+    mostrarVistaResuelta();
     return;
   }
 
@@ -151,6 +157,7 @@ async function iniciar() {
       mostrarError(
         "Tu cuenta no está vinculada a un profesional activo."
       );
+      mostrarVistaResuelta();
       return;
     }
 
@@ -160,12 +167,14 @@ async function iniciar() {
     seccionProfesionalHorarios?.classList.remove("oculto");
 
     await cargarMiHorario();
+    mostrarVistaResuelta();
     return;
   }
 
   mostrarError(
     "Esta cuenta no tiene permisos para consultar horarios."
   );
+  mostrarVistaResuelta();
 }
 
 async function obtenerMembresia(
@@ -253,14 +262,14 @@ async function cargarNombreNegocio() {
 async function cargarMiHorario() {
   listaMiHorario.innerHTML = `
     <div class="cargando">
-      Cargando tu horario...
+      🐱 Cargando tu horario...
     </div>
   `;
 
-  // El profesional autenticado consulta la tabla horarios con RLS.
+  // Usamos la vista pública de horarios para consulta de solo lectura.
   const { data: horarios, error } =
     await db
-      .from("horarios")
+      .from("horarios_publicos")
       .select(`
         id,
         profesional_id,
