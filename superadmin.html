@@ -12,7 +12,6 @@
   <script src="config.js"></script>
 
   <style>
-
     *{
       box-sizing:border-box;
     }
@@ -99,15 +98,11 @@
       border-radius:24px;
       padding:20px;
       margin-bottom:18px;
-      box-shadow:
-        0 10px 30px rgba(70,50,90,.06);
+      box-shadow:0 10px 30px rgba(70,50,90,.06);
     }
 
     .sa-welcome-top{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
+      display:block;
     }
 
     .sa-welcome small{
@@ -119,6 +114,7 @@
       margin:4px 0 4px;
       font-size:22px;
       color:#302837;
+      overflow-wrap:anywhere;
     }
 
     .sa-muted{
@@ -127,16 +123,13 @@
     }
 
     .sa-top-actions{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
+      margin-top:14px;
     }
 
     .sa-mini-btn{
-      border:none;
+      border:1px solid #ddd6e4;
       background:#fff;
       color:#62586d;
-      border:1px solid #ddd6e4;
       border-radius:12px;
       padding:9px 16px;
       width:auto;
@@ -154,7 +147,7 @@
       margin-bottom:16px;
     }
 
-    /* TABS SUPERIORES */
+    /* TABS DESKTOP */
 
     .sa-tabs{
       display:flex;
@@ -242,8 +235,7 @@
       border:1px solid #ddd8e2;
       border-radius:22px;
       padding:18px;
-      box-shadow:
-        0 8px 24px rgba(55,45,70,.05);
+      box-shadow:0 8px 24px rgba(55,45,70,.05);
     }
 
     .sa-card h3,
@@ -263,8 +255,7 @@
       border-radius:17px;
       padding:15px;
       background:#fff;
-      box-shadow:
-        0 4px 14px rgba(0,0,0,.03);
+      box-shadow:0 4px 14px rgba(0,0,0,.03);
     }
 
     .sa-item h4{
@@ -312,8 +303,7 @@
       color:white;
       font-weight:700;
       cursor:pointer;
-      box-shadow:
-        0 7px 18px rgba(123,85,218,.18);
+      box-shadow:0 7px 18px rgba(123,85,218,.18);
     }
 
     .btn-guardar:hover{
@@ -428,8 +418,7 @@
 
       padding:7px 5px;
 
-      box-shadow:
-        0 12px 40px rgba(60,45,80,.18);
+      box-shadow:0 12px 40px rgba(60,45,80,.18);
 
       z-index:1000;
     }
@@ -475,10 +464,6 @@
         padding:17px;
       }
 
-      .sa-welcome-top{
-        align-items:center;
-      }
-
       .sa-grid{
         grid-template-columns:1fr;
       }
@@ -496,7 +481,6 @@
       .sa-bottom-nav{
         display:flex;
       }
-
     }
 
     @media(min-width:651px){
@@ -504,7 +488,6 @@
       .sa-bottom-nav{
         display:none;
       }
-
     }
 
   </style>
@@ -761,10 +744,8 @@
 
 
       <div class="sa-help">
-
         La contraseña se envía de forma segura al servidor y
         la llave privada de Supabase no queda guardada en el navegador.
-
       </div>
 
     </div>
@@ -1073,7 +1054,6 @@
         <thead>
 
           <tr>
-
             <th>Fecha</th>
             <th>Hora</th>
             <th>Negocio</th>
@@ -1081,7 +1061,6 @@
             <th>Servicio</th>
             <th>Profesional</th>
             <th>Estado</th>
-
           </tr>
 
         </thead>
@@ -1146,63 +1125,38 @@
 <script src="superadmin.js"></script>
 
 
-<!-- SINCRONIZA EL BOTÓN MORADO -->
+<!-- CAMBIA EL BOTÓN MORADO SEGÚN LA SECCIÓN -->
 
 <script>
+  document.addEventListener("DOMContentLoaded", () => {
 
-  document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+    const botones =
+      document.querySelectorAll("[data-tab]");
 
-      const botones =
-        document.querySelectorAll(
-          "[data-tab]"
-        );
+    botones.forEach(boton => {
 
+      boton.addEventListener("click", () => {
 
-      botones.forEach(
-        boton => {
+        const tab =
+          boton.dataset.tab;
 
-          boton.addEventListener(
-            "click",
-            () => {
+        document
+          .querySelectorAll("[data-tab]")
+          .forEach(b => {
+            b.classList.remove("activo");
+          });
 
-              const tab =
-                boton.dataset.tab;
+        document
+          .querySelectorAll(`[data-tab="${tab}"]`)
+          .forEach(b => {
+            b.classList.add("activo");
+          });
 
+      });
 
-              document
-                .querySelectorAll(
-                  "[data-tab]"
-                )
-                .forEach(
-                  b =>
-                    b.classList.remove(
-                      "activo"
-                    )
-                );
+    });
 
-
-              document
-                .querySelectorAll(
-                  `[data-tab="${tab}"]`
-                )
-                .forEach(
-                  b =>
-                    b.classList.add(
-                      "activo"
-                    )
-                );
-
-            }
-          );
-
-        }
-      );
-
-    }
-  );
-
+  });
 </script>
 
 </body>
