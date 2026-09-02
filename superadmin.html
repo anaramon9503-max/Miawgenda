@@ -106,7 +106,7 @@
     .sa-welcome-top{
       display:flex;
       justify-content:space-between;
-      align-items:flex-start;
+      align-items:center;
       gap:12px;
     }
 
@@ -138,7 +138,7 @@
       color:#62586d;
       border:1px solid #ddd6e4;
       border-radius:12px;
-      padding:9px 12px;
+      padding:9px 16px;
       width:auto;
       font-size:13px;
       cursor:pointer;
@@ -154,7 +154,7 @@
       margin-bottom:16px;
     }
 
-    /* TABS SUPERIORES EN DESKTOP */
+    /* TABS SUPERIORES */
 
     .sa-tabs{
       display:flex;
@@ -203,6 +203,7 @@
         opacity:0;
         transform:translateY(5px);
       }
+
       to{
         opacity:1;
         transform:translateY(0);
@@ -413,19 +414,19 @@
       transform:translateX(-50%);
       bottom:14px;
       width:calc(100% - 24px);
-      max-width:560px;
+      max-width:600px;
 
       display:flex;
-      justify-content:space-around;
+      justify-content:space-between;
       align-items:center;
 
-      background:rgba(255,255,255,.95);
+      background:rgba(255,255,255,.96);
       backdrop-filter:blur(12px);
 
       border:1px solid #ddd6e5;
       border-radius:20px;
 
-      padding:8px 6px;
+      padding:7px 5px;
 
       box-shadow:
         0 12px 40px rgba(60,45,80,.18);
@@ -437,12 +438,14 @@
       border:none;
       background:transparent;
       color:#807687;
-      padding:7px 9px;
+      padding:7px 5px;
       border-radius:12px;
       width:auto;
-      min-width:54px;
-      font-size:10px;
+      flex:1;
+      min-width:0;
+      font-size:9px;
       cursor:pointer;
+      transition:.2s;
     }
 
     .sa-bottom-nav button span{
@@ -473,11 +476,7 @@
       }
 
       .sa-welcome-top{
-        display:block;
-      }
-
-      .sa-top-actions{
-        margin-top:14px;
+        align-items:center;
       }
 
       .sa-grid{
@@ -497,12 +496,15 @@
       .sa-bottom-nav{
         display:flex;
       }
+
     }
 
     @media(min-width:651px){
+
       .sa-bottom-nav{
         display:none;
       }
+
     }
 
   </style>
@@ -559,14 +561,6 @@
       <div class="sa-top-actions">
 
         <button
-          id="btnPanel"
-          class="sa-mini-btn"
-          type="button"
-        >
-          📅 Ver citas
-        </button>
-
-        <button
           id="btnCerrar"
           class="sa-mini-btn"
           type="button"
@@ -593,7 +587,10 @@
 
   <div class="sa-tabs">
 
-    <button data-tab="negocios">
+    <button
+      data-tab="negocios"
+      class="activo"
+    >
       🏢 Negocios
     </button>
 
@@ -1119,6 +1116,12 @@
   </button>
 
 
+  <button data-tab="profesionales">
+    <span>👩‍⚕️</span>
+    Profes.
+  </button>
+
+
   <button data-tab="servicios">
     <span>🛍️</span>
     Servicios
@@ -1141,6 +1144,66 @@
 
 <script src="admin-common.js"></script>
 <script src="superadmin.js"></script>
+
+
+<!-- SINCRONIZA EL BOTÓN MORADO -->
+
+<script>
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+      const botones =
+        document.querySelectorAll(
+          "[data-tab]"
+        );
+
+
+      botones.forEach(
+        boton => {
+
+          boton.addEventListener(
+            "click",
+            () => {
+
+              const tab =
+                boton.dataset.tab;
+
+
+              document
+                .querySelectorAll(
+                  "[data-tab]"
+                )
+                .forEach(
+                  b =>
+                    b.classList.remove(
+                      "activo"
+                    )
+                );
+
+
+              document
+                .querySelectorAll(
+                  `[data-tab="${tab}"]`
+                )
+                .forEach(
+                  b =>
+                    b.classList.add(
+                      "activo"
+                    )
+                );
+
+            }
+          );
+
+        }
+      );
+
+    }
+  );
+
+</script>
 
 </body>
 </html>
