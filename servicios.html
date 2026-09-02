@@ -7,8 +7,261 @@
   <title>AR Agenda | Servicios</title>
 
   <link rel="stylesheet" href="style.css">
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    *{box-sizing:border-box;}
+
+    body{
+      margin:0;
+      padding-bottom:105px;
+    }
+
+    .servicios-cabecera{
+      margin-bottom:18px;
+      padding:20px;
+      border:1px solid #e8e1ec;
+      border-radius:20px;
+      background:#fff;
+    }
+
+    .servicios-cabecera .mini{
+      margin:0 0 5px;
+      font-size:12px;
+      color:#81778a;
+    }
+
+    .servicios-cabecera h2{
+      margin:0;
+      color:#352d3d;
+    }
+
+    .servicios-cabecera p{
+      margin:7px 0 0;
+      color:#756b7d;
+      font-size:13px;
+    }
+
+    .servicios-form{
+      margin-top:18px;
+      padding:18px;
+      background:#fff;
+      border:1px solid #e8e1ec;
+      border-radius:20px;
+    }
+
+    .servicios-form h3{
+      margin:0 0 6px;
+      color:#352d3d;
+    }
+
+    .servicios-form .ayuda{
+      margin:0 0 15px;
+      color:#81778a;
+      font-size:13px;
+    }
+
+    .servicios-form label{
+      display:block;
+      margin:11px 0 6px;
+      font-size:12px;
+      font-weight:700;
+      color:#716779;
+    }
+
+    .servicios-form input,
+    .servicios-form textarea{
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid #dcd4e5;
+      background:#fff;
+      color:#322d36;
+      font-size:14px;
+      font-family:inherit;
+    }
+
+    .servicios-form textarea{
+      min-height:86px;
+      resize:vertical;
+    }
+
+    .servicios-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .btn-guardar-servicio{
+      width:100%;
+      margin-top:16px;
+      border:none;
+      border-radius:13px;
+      padding:13px;
+      background:#7b55da;
+      color:#fff;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .btn-cancelar-edicion{
+      width:100%;
+      margin-top:9px;
+      border:none;
+      border-radius:13px;
+      padding:12px;
+      background:#eee9f3;
+      color:#5f5667;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .btn-volver-dashboard,
+    .btn-cerrar-servicios{
+      width:100%;
+      margin-top:10px;
+      padding:13px;
+      border:1px solid #e0d9e4;
+      border-radius:13px;
+      background:#f3eff5;
+      color:#5d5264;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .lista-servicios-ar{
+      display:grid;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .servicio-card-ar{
+      padding:15px;
+      border:1px solid #e8e1ec;
+      border-radius:17px;
+      background:#faf8fb;
+    }
+
+    .servicio-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .servicio-nombre-ar{
+      margin:0;
+      font-size:16px;
+      font-weight:800;
+      color:#493d52;
+    }
+
+    .servicio-descripcion-ar{
+      margin-top:5px;
+      color:#7d7284;
+      font-size:13px;
+      line-height:1.45;
+    }
+
+    .servicio-meta-ar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:7px;
+      margin-top:10px;
+    }
+
+    .servicio-chip{
+      padding:6px 9px;
+      border-radius:999px;
+      background:#eee8f5;
+      color:#604d70;
+      font-size:11px;
+      font-weight:700;
+    }
+
+    .servicio-chip.inactivo{
+      background:#ececef;
+      color:#686871;
+    }
+
+    .servicio-acciones-ar{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:12px;
+    }
+
+    .servicio-acciones-ar button{
+      border:none;
+      border-radius:11px;
+      padding:10px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .btn-editar-servicio{
+      background:#eee8f5;
+      color:#604d70;
+    }
+
+    .btn-estado-servicio{
+      background:#f6e8f1;
+      color:#755069;
+    }
+
+    .servicio-inactivo{
+      opacity:.62;
+    }
+
+    .nav-inferior-ar{
+      position:fixed;
+      left:50%;
+      bottom:10px;
+      transform:translateX(-50%);
+      width:min(calc(100% - 20px),620px);
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:4px;
+      padding:8px;
+      background:rgba(255,255,255,.97);
+      border:1px solid #ddd6e2;
+      border-radius:24px;
+      box-shadow:0 10px 30px rgba(65,48,76,.12);
+      z-index:999;
+      backdrop-filter:blur(12px);
+    }
+
+    .nav-inferior-ar a{
+      min-width:0;
+      padding:9px 3px;
+      border-radius:16px;
+      text-decoration:none;
+      text-align:center;
+      color:#746a79;
+      font-size:10px;
+    }
+
+    .nav-inferior-ar .nav-icono{
+      display:block;
+      font-size:20px;
+      margin-bottom:4px;
+    }
+
+    .nav-inferior-ar a.activo{
+      background:#7b55da;
+      color:#fff;
+    }
+
+    .oculto{
+      display:none !important;
+    }
+
+    @media(max-width:480px){
+      .servicios-grid{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -17,136 +270,127 @@
 
   <div class="encabezado">
     <h1>AR Agenda</h1>
-    <p>Administración de servicios</p>
+    <p>Servicios</p>
   </div>
 
   <div class="tarjeta">
 
-    <div class="barra">
+    <div class="servicios-cabecera">
+      <p class="mini">Negocio</p>
+      <h2 id="nombreNegocio">Cargando...</h2>
+      <p>Sesión: <span id="correoUsuario"></span></p>
 
-      <div class="negocio">
-        <div class="negocio-label">
-          Negocio
-        </div>
-
-        <div
-          id="nombreNegocio"
-          class="negocio-nombre"
-        >
-          Cargando...
-        </div>
-      </div>
-
-      <div class="correo">
-        Sesión:
-        <span id="correoUsuario"></span>
-      </div>
-
-      <button
-        id="btnVolver"
-        class="cerrar"
-        style="width:100%; padding:15px; margin-bottom:10px;"
-      >
-        ← Volver a citas
+      <button id="btnVolver" type="button" class="btn-volver-dashboard">
+        ← Volver al Dashboard
       </button>
 
-      <button
-        id="btnCerrar"
-        class="cerrar"
-        style="width:100%; padding:15px;"
-      >
+      <button id="btnCerrar" type="button" class="btn-cerrar-servicios">
         Cerrar sesión
       </button>
-
     </div>
 
+    <div id="mensaje" class="mensaje oculto"></div>
 
-    <div class="form-servicio">
+    <section class="servicios-form">
+      <h3 id="tituloFormularioServicio">Agregar servicio</h3>
+      <p class="ayuda">
+        Configura el nombre, duración y precio del servicio.
+      </p>
 
-      <h3 id="tituloFormularioServicio">
-        Agregar servicio
-      </h3>
+      <input id="servicioEditandoId" type="hidden">
 
-      <form id="formularioServicio">
+      <label for="servicioNombre">Nombre</label>
+      <input
+        id="servicioNombre"
+        type="text"
+        placeholder="Ej. Consulta nutricional"
+      >
 
-        <input
-          type="text"
-          id="servicioNombre"
-          placeholder="Nombre del servicio"
-          required
-        >
+      <label for="servicioDescripcion">Descripción</label>
+      <textarea
+        id="servicioDescripcion"
+        placeholder="Opcional"
+      ></textarea>
 
-        <textarea
-          id="servicioDescripcion"
-          placeholder="Descripción"
-        ></textarea>
-
-        <div class="fila-doble">
-
+      <div class="servicios-grid">
+        <div>
+          <label for="servicioDuracion">Duración (minutos)</label>
           <input
-            type="number"
             id="servicioDuracion"
-            placeholder="Duración en minutos"
-            value="60"
-            min="1"
-            required
-          >
-
-          <input
             type="number"
-            id="servicioPrecio"
-            placeholder="Precio"
-            min="0"
-            step="0.01"
-            required
+            min="1"
+            step="1"
+            value="60"
           >
-
         </div>
 
-        <button
-          type="submit"
-          class="btn-guardar"
-        >
-          Guardar servicio
-        </button>
-
-        <button
-          type="button"
-          id="btnCancelarEdicion"
-          class="btn-cancelar-edicion oculto"
-        >
-          Cancelar edición
-        </button>
-
-      </form>
-
-    </div>
-
-
-    <h2>Mis servicios</h2>
-
-    <div
-      id="listaServicios"
-      class="lista-servicios"
-    >
-      <div class="cargando">
-        Cargando servicios...
+        <div>
+          <label for="servicioPrecio">Precio</label>
+          <input
+            id="servicioPrecio"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          >
+        </div>
       </div>
-    </div>
 
+      <button id="btnGuardarServicio" type="button" class="btn-guardar-servicio">
+        Guardar servicio
+      </button>
 
-    <div
-      id="mensaje"
-      class="mensaje oculto"
-    ></div>
+      <button
+        id="btnCancelarEdicionServicio"
+        type="button"
+        class="btn-cancelar-edicion oculto"
+      >
+        Cancelar edición
+      </button>
+    </section>
+
+    <section class="servicios-form">
+      <h3>Mis servicios</h3>
+      <p class="ayuda">
+        Aquí puedes editar o activar/desactivar los servicios del negocio.
+      </p>
+
+      <div id="listaServicios" class="lista-servicios-ar">
+        <div class="cargando">Cargando servicios...</div>
+      </div>
+    </section>
 
   </div>
-
 </div>
 
-<script src="config.js"></script>
-<script src="admin-common.js"></script>
-<script src="servicios.js"></script>
+<nav class="nav-inferior-ar">
+  <a href="dashboard.html">
+    <span class="nav-icono">🏠</span>
+    Inicio
+  </a>
+
+  <a href="panel.html">
+    <span class="nav-icono">📅</span>
+    Citas
+  </a>
+
+  <a href="profesionales.html">
+    <span class="nav-icono">👩‍⚕️</span>
+    Profes.
+  </a>
+
+  <a href="servicios.html" class="activo">
+    <span class="nav-icono">🛍️</span>
+    Servicios
+  </a>
+
+  <a href="horarios.html">
+    <span class="nav-icono">🕐</span>
+    Horarios
+  </a>
+</nav>
+
+<script src="servicios.js?v=5"></script>
 
 </body>
 </html>

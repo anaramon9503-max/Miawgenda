@@ -1,499 +1,491 @@
-const serviciosDb = window.AR.db;
+const SUPABASE_URL =
+  "https://wbdijpsiovssuhxzzovi.supabase.co";
 
-const $ = (id) => document.getElementById(id);
+const SUPABASE_KEY =
+  "sb_publishable_T-fiB_MwofciQDOd7KWVOQ_LBVpq9xB";
 
-let negocioId = null;
-let servicioEditandoId = null;
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
+const $ = id => document.getElementById(id);
 
-// =====================================================
-// MENSAJES
-// =====================================================
+const nombreNegocio = $("nombreNegocio");
+const correoUsuario = $("correoUsuario");
+const mensaje = $("mensaje");
 
-function mostrarMensaje(texto, error = false) {
-  const el = $("mensaje");
+const servicioEditandoId = $("servicioEditandoId");
+const servicioNombre = $("servicioNombre");
+const servicioDescripcion = $("servicioDescripcion");
+const servicioDuracion = $("servicioDuracion");
+const servicioPrecio = $("servicioPrecio");
+const btnGuardarServicio = $("btnGuardarServicio");
+const btnCancelarEdicionServicio = $("btnCancelarEdicionServicio");
+const tituloFormularioServicio = $("tituloFormularioServicio");
+const listaServicios = $("listaServicios");
 
-  if (!el) return;
+let negocioActualId = null;
+let usuarioActual = null;
+let servicios = [];
 
-  el.textContent = texto;
-  el.className =
-    `mensaje ${error ? "error" : "exito"}`;
+$("btnVolver")?.addEventListener(
+  "click",
+  () => {
+    window.location.href =
+      "dashboard.html";
+  }
+);
 
-  el.classList.remove("oculto");
-}
+$("btnCerrar")?.addEventListener(
+  "click",
+  async () => {
+    await db.auth.signOut();
+    window.location.href =
+      "panel.html";
+  }
+);
 
+btnGuardarServicio?.addEventListener(
+  "click",
+  guardarServicio
+);
 
-function ocultarMensaje() {
-  const el = $("mensaje");
-
-  if (!el) return;
-
-  el.textContent = "";
-  el.className = "mensaje oculto";
-}
-
-
-// =====================================================
-// INICIAR
-// =====================================================
+btnCancelarEdicionServicio?.addEventListener(
+  "click",
+  limpiarFormulario
+);
 
 async function iniciar() {
-  try {
+  ocultarMensaje();
 
-    const { data } =
-      await serviciosDb.auth.getSession();
+  const { data, error } =
+    await db.auth.getSession();
 
-    const user =
-      data.session?.user;
-
-    if (!user) {
-      location.href = "panel.html";
-      return;
-    }
-
-
-    // Mostrar correo
-    $("correoUsuario").textContent =
-      user.email || "";
-
-
-    // Obtener membresía
-    const { data: membresias, error: errorMembresia } =
-      await serviciosDb
-        .from("miembros_negocio")
-        .select(`
-          negocio_id,
-          es_admin,
-          es_profesional,
-          activo
-        `)
-        .eq("usuario_id", user.id)
-        .eq("activo", true)
-        .limit(1);
-
-
-    if (errorMembresia) {
-      throw errorMembresia;
-    }
-
-
-    if (
-      !membresias ||
-      membresias.length === 0
-    ) {
-      throw new Error(
-        "Esta cuenta no tiene un negocio asignado."
-      );
-    }
-
-
-    negocioId =
-      membresias[0].negocio_id;
-
-
-    // Obtener nombre del negocio
-    const { data: negocio, error: errorNegocio } =
-      await serviciosDb
-        .from("negocios")
-        .select("nombre")
-        .eq("id", negocioId)
-        .maybeSingle();
-
-
-    if (errorNegocio) {
-      throw errorNegocio;
-    }
-
-
-    $("nombreNegocio").textContent =
-      negocio?.nombre || "Negocio";
-
-
-    await cargarServicios();
-
-  } catch (error) {
-
-    console.error(
-      "Error iniciando servicios:",
-      error
-    );
-
-    $("nombreNegocio").textContent =
-      "Error";
-
-    mostrarMensaje(
-      error.message ||
-      "No fue posible cargar los servicios.",
-      true
-    );
+  if (
+    error ||
+    !data.session?.user
+  ) {
+    window.location.href =
+      "panel.html";
+    return;
   }
+
+  usuarioActual =
+    data.session.user;
+
+  correoUsuario.textContent =
+    usuarioActual.email || "";
+
+  const membresia =
+    await obtenerMembresiaAdmin(
+      usuarioActual.id
+    );
+
+  if (!membresia) {
+    mostrarError(
+      "Esta sección es solo para administradores del negocio."
+    );
+
+    setTimeout(() => {
+      window.location.href =
+        "dashboard.html";
+    }, 1500);
+
+    return;
+  }
+
+  negocioActualId =
+    membresia.negocio_id;
+
+  await cargarNombreNegocio();
+  await cargarServicios();
 }
 
+async function obtenerMembresiaAdmin(
+  usuarioId
+) {
+  const { data, error } =
+    await db
+      .from("miembros_negocio")
+      .select(`
+        negocio_id,
+        es_admin,
+        activo
+      `)
+      .eq(
+        "usuario_id",
+        usuarioId
+      )
+      .eq("activo", true)
+      .eq("es_admin", true)
+      .limit(1);
 
-// =====================================================
-// CARGAR SERVICIOS
-// =====================================================
+  if (error) {
+    console.error(
+      "Error membresía:",
+      error
+    );
+    return null;
+  }
+
+  return data?.[0] || null;
+}
+
+async function cargarNombreNegocio() {
+  const { data, error } =
+    await db
+      .from("negocios")
+      .select("nombre")
+      .eq(
+        "id",
+        negocioActualId
+      )
+      .maybeSingle();
+
+  if (error || !data) {
+    console.error(error);
+
+    nombreNegocio.textContent =
+      "Mi negocio";
+
+    return;
+  }
+
+  nombreNegocio.textContent =
+    data.nombre || "Mi negocio";
+}
 
 async function cargarServicios() {
-
-  const lista =
-    $("listaServicios");
-
-
-  lista.innerHTML = `
+  listaServicios.innerHTML = `
     <div class="cargando">
       Cargando servicios...
     </div>
   `;
 
-
   const { data, error } =
-    await serviciosDb
+    await db
       .from("servicios")
-      .select("*")
+      .select(`
+        id,
+        negocio_id,
+        nombre,
+        descripcion,
+        duracion_minutos,
+        precio,
+        activo
+      `)
       .eq(
         "negocio_id",
-        negocioId
+        negocioActualId
       )
       .order(
         "nombre",
         { ascending: true }
       );
 
-
   if (error) {
-
     console.error(
-      "Error cargando servicios:",
+      "Error servicios:",
       error
     );
 
-    lista.innerHTML = "";
+    listaServicios.innerHTML = `
+      <div class="sin-resultados">
+        No fue posible cargar los servicios.
+      </div>
+    `;
 
-    mostrarMensaje(
-      "No se pudieron cargar los servicios: " +
-      error.message,
-      true
+    mostrarError(
+      "No fue posible cargar los servicios."
     );
 
     return;
   }
 
+  servicios = data || [];
+  renderServicios();
+}
 
-  if (
-    !data ||
-    data.length === 0
-  ) {
-
-    lista.innerHTML = `
-      <div class="sin-citas">
-        Aún no tienes servicios registrados.
+function renderServicios() {
+  if (!servicios.length) {
+    listaServicios.innerHTML = `
+      <div class="sin-resultados">
+        Todavía no hay servicios.
       </div>
     `;
-
     return;
   }
 
+  listaServicios.innerHTML = "";
 
-  lista.innerHTML = "";
+  for (
+    const servicio
+    of servicios
+  ) {
+    const card =
+      document.createElement(
+        "div"
+      );
 
+    card.className =
+      `servicio-card-ar ${
+        servicio.activo
+          ? ""
+          : "servicio-inactivo"
+      }`;
 
-  data.forEach(servicio => {
+    const precio =
+      servicio.precio === null ||
+      servicio.precio === undefined
+        ? "Sin precio"
+        : formatoDinero(
+            servicio.precio
+          );
 
-    const tarjeta =
-      document.createElement("div");
+    const duracion =
+      Number(
+        servicio.duracion_minutos
+      ) || 0;
 
-    tarjeta.className =
-      "cita";
+    card.innerHTML = `
+      <div class="servicio-top">
+        <div>
+          <div class="servicio-nombre-ar">
+            ${escapar(
+              servicio.nombre
+            )}
+          </div>
 
-
-    tarjeta.innerHTML = `
-
-      <div class="dato">
-        <strong>
-          ${escapar(servicio.nombre)}
-        </strong>
+          <div class="servicio-descripcion-ar">
+            ${escapar(
+              servicio.descripcion ||
+              "Sin descripción"
+            )}
+          </div>
+        </div>
       </div>
 
-      ${
-        servicio.descripcion
-          ? `
-            <div class="dato">
-              ${escapar(
-                servicio.descripcion
-              )}
-            </div>
-          `
-          : ""
-      }
+      <div class="servicio-meta-ar">
+        <span class="servicio-chip">
+          ⏱️ ${duracion} min
+        </span>
 
-      <div class="dato">
-        ⏱️
-        ${servicio.duracion_minutos}
-        minutos
+        <span class="servicio-chip">
+          💲 ${precio}
+        </span>
+
+        <span class="servicio-chip ${
+          servicio.activo
+            ? ""
+            : "inactivo"
+        }">
+          ${
+            servicio.activo
+              ? "Activo"
+              : "Inactivo"
+          }
+        </span>
       </div>
 
-      <div class="dato">
-        💲
-        ${Number(
-          servicio.precio || 0
-        ).toFixed(2)}
-      </div>
-
-      <div class="acciones">
-
+      <div class="servicio-acciones-ar">
         <button
           type="button"
-          class="btnEditar"
+          class="btn-editar-servicio"
+          onclick="editarServicio(
+            '${servicio.id}'
+          )"
         >
           ✏️ Editar
         </button>
 
         <button
           type="button"
-          class="btnEliminar"
+          class="btn-estado-servicio"
+          onclick="cambiarEstadoServicio(
+            '${servicio.id}',
+            ${!servicio.activo}
+          )"
         >
-          🗑️ Eliminar
+          ${
+            servicio.activo
+              ? "Desactivar"
+              : "Activar"
+          }
         </button>
-
       </div>
     `;
 
-
-    tarjeta
-      .querySelector(".btnEditar")
-      .addEventListener(
-        "click",
-        () =>
-          editarServicio(servicio)
-      );
-
-
-    tarjeta
-      .querySelector(".btnEliminar")
-      .addEventListener(
-        "click",
-        () =>
-          eliminarServicio(
-            servicio.id,
-            servicio.nombre
-          )
-      );
-
-
-    lista.appendChild(
-      tarjeta
+    listaServicios.appendChild(
+      card
     );
-  });
+  }
 }
 
-
-// =====================================================
-// GUARDAR
-// =====================================================
-
-async function guardarServicio(event) {
-
-  event.preventDefault();
-
+async function guardarServicio() {
   ocultarMensaje();
 
-
   const nombre =
-    $("servicioNombre")
-      .value
-      .trim();
-
+    servicioNombre.value.trim();
 
   const descripcion =
-    $("servicioDescripcion")
-      .value
-      .trim();
-
+    servicioDescripcion.value.trim();
 
   const duracion =
     Number(
-      $("servicioDuracion").value
+      servicioDuracion.value
     );
 
+  const precioTexto =
+    servicioPrecio.value.trim();
 
   const precio =
-    Number(
-      $("servicioPrecio").value
-    );
-
+    precioTexto === ""
+      ? null
+      : Number(precioTexto);
 
   if (!nombre) {
-
-    mostrarMensaje(
-      "Escribe el nombre del servicio.",
-      true
+    mostrarError(
+      "Escribe el nombre del servicio."
     );
-
     return;
   }
-
 
   if (
-    !duracion ||
-    duracion < 1
+    !Number.isFinite(duracion) ||
+    duracion <= 0
   ) {
-
-    mostrarMensaje(
-      "Escribe una duración válida.",
-      true
+    mostrarError(
+      "La duración debe ser mayor a 0 minutos."
     );
-
     return;
   }
-
 
   if (
-    Number.isNaN(precio) ||
-    precio < 0
+    precio !== null &&
+    (
+      !Number.isFinite(precio) ||
+      precio < 0
+    )
   ) {
-
-    mostrarMensaje(
-      "Escribe un precio válido.",
-      true
+    mostrarError(
+      "Escribe un precio válido."
     );
-
     return;
   }
 
+  btnGuardarServicio.disabled =
+    true;
+
+  btnGuardarServicio.textContent =
+    "Guardando...";
 
   try {
+    const id =
+      servicioEditandoId.value;
 
-    if (servicioEditandoId) {
-
+    if (id) {
       const { error } =
-        await serviciosDb
+        await db
           .from("servicios")
           .update({
             nombre,
-            descripcion,
+            descripcion:
+              descripcion || null,
             duracion_minutos:
               duracion,
             precio
           })
-          .eq(
-            "id",
-            servicioEditandoId
-          )
+          .eq("id", id)
           .eq(
             "negocio_id",
-            negocioId
+            negocioActualId
           );
 
+      if (error) throw error;
 
-      if (error) {
-        throw error;
-      }
-
-
-      mostrarMensaje(
+      mostrarExito(
         "Servicio actualizado."
       );
 
     } else {
-
       const { error } =
-        await serviciosDb
+        await db
           .from("servicios")
           .insert({
             negocio_id:
-              negocioId,
-
+              negocioActualId,
             nombre,
-
-            descripcion,
-
+            descripcion:
+              descripcion || null,
             duracion_minutos:
               duracion,
-
             precio,
-
-            activo: true
+            activo:
+              true
           });
 
+      if (error) throw error;
 
-      if (error) {
-        throw error;
-      }
-
-
-      mostrarMensaje(
-        "Servicio guardado."
+      mostrarExito(
+        "Servicio agregado."
       );
     }
 
-
     limpiarFormulario();
-
     await cargarServicios();
 
   } catch (error) {
-
     console.error(
       "Error guardando servicio:",
       error
     );
 
-    mostrarMensaje(
-      "No se pudo guardar: " +
-      error.message,
-      true
+    mostrarError(
+      error?.message ||
+      "No fue posible guardar el servicio."
     );
+
+  } finally {
+    btnGuardarServicio.disabled =
+      false;
+
+    btnGuardarServicio.textContent =
+      "Guardar servicio";
   }
 }
 
+function editarServicio(
+  id
+) {
+  const servicio =
+    servicios.find(
+      s => s.id === id
+    );
 
-// =====================================================
-// EDITAR
-// =====================================================
+  if (!servicio) return;
 
-function editarServicio(servicio) {
-
-  servicioEditandoId =
+  servicioEditandoId.value =
     servicio.id;
 
-
-  $("servicioNombre").value =
+  servicioNombre.value =
     servicio.nombre || "";
 
-
-  $("servicioDescripcion").value =
+  servicioDescripcion.value =
     servicio.descripcion || "";
 
-
-  $("servicioDuracion").value =
+  servicioDuracion.value =
     servicio.duracion_minutos || 60;
 
+  servicioPrecio.value =
+    servicio.precio ?? "";
 
-  $("servicioPrecio").value =
-    servicio.precio || 0;
-
-
-  $("tituloFormularioServicio")
-    .textContent =
+  tituloFormularioServicio.textContent =
     "Editar servicio";
 
-
-  const boton =
-    $("formularioServicio")
-      .querySelector(
-        'button[type="submit"]'
-      );
-
-
-  boton.textContent =
-    "Guardar cambios";
-
-
-  $("btnCancelarEdicion")
-    .classList
-    .remove("oculto");
-
+  btnCancelarEdicionServicio.classList.remove(
+    "oculto"
+  );
 
   window.scrollTo({
     top: 0,
@@ -501,113 +493,90 @@ function editarServicio(servicio) {
   });
 }
 
-
-// =====================================================
-// LIMPIAR
-// =====================================================
-
 function limpiarFormulario() {
+  servicioEditandoId.value = "";
+  servicioNombre.value = "";
+  servicioDescripcion.value = "";
+  servicioDuracion.value = "60";
+  servicioPrecio.value = "";
 
-  servicioEditandoId = null;
-
-
-  $("formularioServicio")
-    .reset();
-
-
-  $("servicioDuracion").value =
-    60;
-
-
-  $("tituloFormularioServicio")
-    .textContent =
+  tituloFormularioServicio.textContent =
     "Agregar servicio";
 
-
-  const boton =
-    $("formularioServicio")
-      .querySelector(
-        'button[type="submit"]'
-      );
-
-
-  boton.textContent =
-    "Guardar servicio";
-
-
-  $("btnCancelarEdicion")
-    .classList
-    .add("oculto");
+  btnCancelarEdicionServicio.classList.add(
+    "oculto"
+  );
 }
 
-
-// =====================================================
-// ELIMINAR
-// =====================================================
-
-async function eliminarServicio(
+async function cambiarEstadoServicio(
   id,
-  nombre
+  nuevoActivo
 ) {
+  ocultarMensaje();
 
-  const confirmar =
-    window.confirm(
-      `¿Eliminar "${nombre}"?`
-    );
+  const texto =
+    nuevoActivo
+      ? "¿Activar este servicio?"
+      : "¿Desactivar este servicio? No se borrarán las citas anteriores.";
 
-
-  if (!confirmar) {
+  if (!window.confirm(texto)) {
     return;
   }
 
+  const { error } =
+    await db
+      .from("servicios")
+      .update({
+        activo:
+          nuevoActivo
+      })
+      .eq("id", id)
+      .eq(
+        "negocio_id",
+        negocioActualId
+      );
 
-  try {
+  if (error) {
+    console.error(error);
 
-    const { error } =
-      await serviciosDb
-        .from("servicios")
-        .delete()
-        .eq("id", id)
-        .eq(
-          "negocio_id",
-          negocioId
-        );
-
-
-    if (error) {
-      throw error;
-    }
-
-
-    mostrarMensaje(
-      "Servicio eliminado."
+    mostrarError(
+      "No fue posible cambiar el estado del servicio."
     );
 
-
-    await cargarServicios();
-
-  } catch (error) {
-
-    console.error(
-      "Error eliminando:",
-      error
-    );
-
-    mostrarMensaje(
-      "No se pudo eliminar: " +
-      error.message,
-      true
-    );
+    return;
   }
+
+  mostrarExito(
+    nuevoActivo
+      ? "Servicio activado."
+      : "Servicio desactivado."
+  );
+
+  await cargarServicios();
 }
 
+function formatoDinero(
+  valor
+) {
+  const numero =
+    Number(valor);
 
-// =====================================================
-// ESCAPAR TEXTO
-// =====================================================
+  if (!Number.isFinite(numero)) {
+    return "0.00";
+  }
 
-function escapar(texto = "") {
+  return numero.toLocaleString(
+    "es-MX",
+    {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }
+  );
+}
 
+function escapar(
+  texto = ""
+) {
   return String(texto)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -616,50 +585,37 @@ function escapar(texto = "") {
     .replaceAll("'", "&#039;");
 }
 
+function mostrarError(
+  texto
+) {
+  mensaje.textContent =
+    texto;
 
-// =====================================================
-// EVENTOS
-// =====================================================
+  mensaje.className =
+    "mensaje error";
+}
 
-$("formularioServicio")
-  .addEventListener(
-    "submit",
-    guardarServicio
-  );
+function mostrarExito(
+  texto
+) {
+  mensaje.textContent =
+    texto;
 
+  mensaje.className =
+    "mensaje exito";
+}
 
-$("btnCancelarEdicion")
-  .addEventListener(
-    "click",
-    limpiarFormulario
-  );
+function ocultarMensaje() {
+  mensaje.textContent = "";
 
+  mensaje.className =
+    "mensaje oculto";
+}
 
-$("btnVolver")
-  .addEventListener(
-    "click",
-    () => {
-      location.href =
-        "panel.html";
-    }
-  );
+window.editarServicio =
+  editarServicio;
 
-
-$("btnCerrar")
-  .addEventListener(
-    "click",
-    async () => {
-
-      await serviciosDb.auth.signOut();
-
-      location.href =
-        "panel.html";
-    }
-  );
-
-
-// =====================================================
-// ARRANCAR
-// =====================================================
+window.cambiarEstadoServicio =
+  cambiarEstadoServicio;
 
 iniciar();
