@@ -12,42 +12,19 @@ const dias = {
   7: "Domingo"
 };
 
-
-/* =========================================================
-   MENSAJES
-========================================================= */
-
 function msg(texto, error = false) {
   const el = $("saMensaje");
-
-  if (!el) return;
-
   el.textContent = texto;
   el.className = `mensaje ${error ? "error" : "exito"}`;
   el.classList.remove("oculto");
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
-
 
 function clearMsg() {
-  const el = $("saMensaje");
-
-  if (el) {
-    el.classList.add("oculto");
-  }
+  $("saMensaje").classList.add("oculto");
 }
 
-
-/* =========================================================
-   INICIO
-========================================================= */
-
 async function init() {
-
   const ctx = await AR.contexto();
 
   if (!ctx) {
@@ -60,41 +37,18 @@ async function init() {
     return;
   }
 
-  if ($("saCorreo")) {
-    $("saCorreo").textContent = ctx.user.email;
-  }
+  $("saCorreo").textContent = ctx.user.email;
+  $("btnCerrar").onclick = AR.cerrarSesion;
 
-  if ($("btnCerrar")) {
-    $("btnCerrar").onclick = AR.cerrarSesion;
-  }
-
-  /*
-    Si todavía existe el botón viejo,
-    seguirá funcionando.
-
-    Si ya lo quitaste del HTML,
-    no pasa nada.
-  */
-
+  // Si el botón todavía existe, funciona.
+  // Si ya lo quitaste del HTML, no rompe la página.
   if ($("btnPanel")) {
-    $("btnPanel").onclick = () =>
-      location.href = "panel.html";
+    $("btnPanel").onclick = () => location.href = "panel.html";
   }
 
-
-  /*
-    NAVEGACIÓN
-  */
-
-  document
-    .querySelectorAll("[data-tab]")
-    .forEach(b => {
-
-      b.onclick = () =>
-        abrirTab(b.dataset.tab);
-
-    });
-
+  document.querySelectorAll("[data-tab]").forEach(
+    b => b.onclick = () => abrirTab(b.dataset.tab)
+  );
 
   conectarEventos();
 
@@ -106,153 +60,39 @@ async function init() {
     cargarHorarios(),
     cargarCitas()
   ]);
-
-  abrirTab("negocios");
 }
 
-
-/* =========================================================
-   TABS
-========================================================= */
-
 function abrirTab(tab) {
-
-  /*
-    Ocultar todas las secciones
-  */
-
   document
     .querySelectorAll(".sa-section")
-    .forEach(s => {
+    .forEach(s => s.classList.remove("activa"));
 
-      s.classList.remove("activa");
-
-    });
-
-
-  /*
-    Mostrar sección seleccionada
-  */
-
-  const seccion =
-    $("tab-" + tab);
+  const seccion = $("tab-" + tab);
 
   if (seccion) {
     seccion.classList.add("activa");
   }
 
-
-  /*
-    Quitar morado a todos
-  */
-
-  document
-    .querySelectorAll("[data-tab]")
-    .forEach(b => {
-
-      b.classList.remove("activo");
-
-    });
-
-
-  /*
-    Marcar la pestaña seleccionada.
-
-    Esto afecta tanto:
-    - menú desktop
-    - barra inferior móvil
-  */
-
-  document
-    .querySelectorAll(
-      `[data-tab="${tab}"]`
-    )
-    .forEach(b => {
-
-      b.classList.add("activo");
-
-    });
-
-
   clearMsg();
 }
 
-
-/* =========================================================
-   EVENTOS
-========================================================= */
-
 function conectarEventos() {
+  $("formNegocio").onsubmit = crearNegocio;
+  $("formUsuario").onsubmit = crearUsuario;
+  $("formProfesional").onsubmit = crearProfesional;
+  $("formServicioSA").onsubmit = crearServicio;
+  $("formHorarioSA").onsubmit = crearHorario;
 
-  if ($("formNegocio")) {
-    $("formNegocio").onsubmit =
-      crearNegocio;
-  }
+  $("profNegocio").onchange = cargarProfesionales;
+  $("servNegocio").onchange = cargarServicios;
 
-  if ($("formUsuario")) {
-    $("formUsuario").onsubmit =
-      crearUsuario;
-  }
+  $("horNegocio").onchange = async () => {
+    await llenarProfesionalesHorario();
+    await cargarHorarios();
+  };
 
-  if ($("formProfesional")) {
-    $("formProfesional").onsubmit =
-      crearProfesional;
-  }
-
-  if ($("formServicioSA")) {
-    $("formServicioSA").onsubmit =
-      crearServicio;
-  }
-
-  if ($("formHorarioSA")) {
-    $("formHorarioSA").onsubmit =
-      crearHorario;
-  }
-
-
-  if ($("profNegocio")) {
-
-    $("profNegocio").onchange =
-      cargarProfesionales;
-
-  }
-
-
-  if ($("servNegocio")) {
-
-    $("servNegocio").onchange =
-      cargarServicios;
-
-  }
-
-
-  if ($("horNegocio")) {
-
-    $("horNegocio").onchange =
-      async () => {
-
-        await llenarProfesionalesHorario();
-        await cargarHorarios();
-
-      };
-
-  }
-
-
-  if ($("horProfesional")) {
-
-    $("horProfesional").onchange =
-      llenarServiciosHorario;
-
-  }
-
-
-  if ($("citasNegocio")) {
-
-    $("citasNegocio").onchange =
-      cargarCitas;
-
-  }
+  $("horProfesional").onchange = llenarServiciosHorario;
+  $("citasNegocio").onchange = cargarCitas;
 }
 
 
@@ -261,149 +101,58 @@ function conectarEventos() {
 ========================================================= */
 
 async function cargarNegocios() {
-
-  const {
-    data,
-    error
-  } = await db
+  const { data, error } = await db
     .from("negocios")
     .select("id,nombre")
     .order("nombre");
 
-
   if (error) {
-
-    msg(
-      "No pude cargar los negocios: " +
-      error.message,
-      true
-    );
-
+    msg("No pude cargar los negocios: " + error.message, true);
     return;
   }
 
+  negocios = data || [];
 
-  negocios =
-    data || [];
-
-
-  if ($("listaNegocios")) {
-
-    $("listaNegocios").innerHTML =
-      negocios.length
-
-        ? negocios.map(n => `
-
-            <div class="sa-item">
-
-              <h4>
-                ${AR.escape(n.nombre)}
-              </h4>
-
-              <span class="sa-badge">
-                ${n.id}
-              </span>
-
-            </div>
-
-          `).join("")
-
-        : `
-          <div class="sin-resultados">
-            Todavía no hay negocios.
-          </div>
-        `;
-
-  }
-
+  $("listaNegocios").innerHTML = negocios.length
+    ? negocios.map(n => `
+        <div class="sa-item">
+          <h4>${AR.escape(n.nombre)}</h4>
+          <span class="sa-badge">${n.id}</span>
+        </div>
+      `).join("")
+    : '<div class="sin-resultados">Todavía no hay negocios.</div>';
 
   [
     "usuarioNegocio",
     "profNegocio",
     "servNegocio",
     "horNegocio"
-  ]
-  .forEach(id => {
+  ].forEach(id => rellenarNegocios($(id)));
 
-    rellenarNegocios($(id));
-
-  });
-
-
-  rellenarNegocios(
-    $("citasNegocio"),
-    true
-  );
-
+  rellenarNegocios($("citasNegocio"), true);
 
   if (negocios[0]) {
-
     await llenarProfesionalesHorario();
-
   }
 }
 
-
-function rellenarNegocios(
-  sel,
-  todos = false
-) {
-
+function rellenarNegocios(sel, todos = false) {
   if (!sel) return;
 
-
-  const actual =
-    sel.value;
-
+  const actual = sel.value;
 
   sel.innerHTML =
+    (todos
+      ? '<option value="">Todos</option>'
+      : '<option value="">Selecciona un negocio</option>') +
+    negocios.map(n =>
+      `<option value="${n.id}">${AR.escape(n.nombre)}</option>`
+    ).join("");
 
-    (
-      todos
-
-        ? `
-          <option value="">
-            Todos
-          </option>
-        `
-
-        : `
-          <option value="">
-            Selecciona un negocio
-          </option>
-        `
-    )
-
-    +
-
-    negocios.map(n => `
-
-      <option value="${n.id}">
-        ${AR.escape(n.nombre)}
-      </option>
-
-    `).join("");
-
-
-  if (
-    [...sel.options]
-      .some(
-        o => o.value === actual
-      )
-  ) {
-
+  if ([...sel.options].some(o => o.value === actual)) {
     sel.value = actual;
-
-  }
-
-  else if (
-    !todos &&
-    negocios[0]
-  ) {
-
-    sel.value =
-      negocios[0].id;
-
+  } else if (!todos && negocios[0]) {
+    sel.value = negocios[0].id;
   }
 }
 
@@ -413,60 +162,31 @@ function rellenarNegocios(
 ========================================================= */
 
 async function crearNegocio(e) {
-
   e.preventDefault();
-
   clearMsg();
 
-
-  const nombre =
-    $("negocioNombre")
-      .value
-      .trim();
-
+  const nombre = $("negocioNombre").value.trim();
 
   if (!nombre) {
-
-    return msg(
-      "Escribe el nombre del negocio.",
-      true
-    );
-
+    return msg("Escribe el nombre del negocio.", true);
   }
 
-
-  const { error } =
-    await db
-      .from("negocios")
-      .insert({
-
-        nombre,
-        activo: true
-
-      });
-
+  const { error } = await db
+    .from("negocios")
+    .insert({
+      nombre,
+      activo: true
+    });
 
   if (error) {
-
-    msg(
-      error.message,
-      true
-    );
-
+    msg(error.message, true);
     return;
   }
 
-
   e.target.reset();
-
-
-  msg(
-    "Negocio creado correctamente."
-  );
-
+  msg("Negocio creado correctamente.");
 
   await cargarNegocios();
-
 
   await Promise.all([
     cargarProfesionales(),
@@ -478,163 +198,80 @@ async function crearNegocio(e) {
 
 
 /* =========================================================
-   USUARIOS
+   CREAR USUARIO
 ========================================================= */
 
 async function crearUsuario(e) {
-
   e.preventDefault();
-
   clearMsg();
 
-
   const {
-    data: {
-      session
-    }
-  } =
-    await db.auth.getSession();
-
+    data: { session }
+  } = await db.auth.getSession();
 
   if (!session) {
-
     return msg(
       "Tu sesión expiró. Vuelve a iniciar sesión.",
       true
     );
-
   }
-
 
   const payload = {
-
-    negocio_id:
-      $("usuarioNegocio").value,
-
-    rol:
-      $("usuarioRol").value,
-
-    nombre:
-      $("usuarioNombre")
-        .value
-        .trim(),
-
-    especialidad:
-      $("usuarioEspecialidad")
-        .value
-        .trim(),
-
-    email:
-      $("usuarioCorreo")
-        .value
-        .trim(),
-
-    password:
-      $("usuarioPassword").value
-
+    negocio_id: $("usuarioNegocio").value,
+    rol: $("usuarioRol").value,
+    nombre: $("usuarioNombre").value.trim(),
+    especialidad: $("usuarioEspecialidad").value.trim(),
+    email: $("usuarioCorreo").value.trim(),
+    password: $("usuarioPassword").value
   };
 
-
   if (!payload.negocio_id) {
-
-    return msg(
-      "Selecciona un negocio.",
-      true
-    );
-
+    return msg("Selecciona un negocio.", true);
   }
-
 
   if (!payload.rol) {
-
-    return msg(
-      "Selecciona un rol.",
-      true
-    );
-
+    return msg("Selecciona un rol.", true);
   }
 
-
-  if (
-    !payload.email ||
-    !payload.password
-  ) {
-
+  if (!payload.email || !payload.password) {
     return msg(
       "Correo y contraseña son obligatorios.",
       true
     );
-
   }
 
-
   try {
+    const r = await fetch("/api/create-user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify(payload)
+    });
 
-    const r =
-      await fetch(
-        "/api/create-user",
-        {
-
-          method:
-            "POST",
-
-          headers: {
-
-            "Content-Type":
-              "application/json",
-
-            "Authorization":
-              `Bearer ${session.access_token}`
-
-          },
-
-          body:
-            JSON.stringify(
-              payload
-            )
-
-        }
-      );
-
-
-    const out =
-      await r.json();
-
+    const out = await r.json();
 
     if (!r.ok) {
-
       throw new Error(
-        out.error ||
-        "No se pudo crear el usuario"
+        out.error || "No se pudo crear el usuario"
       );
-
     }
 
-
     e.target.reset();
-
 
     rellenarNegocios(
       $("usuarioNegocio")
     );
 
-
     msg(
       `Acceso creado para ${payload.email}.`
     );
 
-
     await cargarProfesionales();
 
-  }
-
-  catch (err) {
-
-    msg(
-      err.message,
-      true
-    );
-
+  } catch (err) {
+    msg(err.message, true);
   }
 }
 
@@ -644,148 +281,84 @@ async function crearUsuario(e) {
 ========================================================= */
 
 async function crearProfesional(e) {
-
   e.preventDefault();
-
 
   const negocio_id =
     $("profNegocio").value;
 
-
   if (!negocio_id) {
-
     return msg(
       "Selecciona un negocio.",
       true
     );
-
   }
 
-
   const nombre =
-    $("profNombre")
-      .value
-      .trim();
-
+    $("profNombre").value.trim();
 
   if (!nombre) {
-
     return msg(
       "Escribe el nombre del profesional.",
       true
     );
-
   }
 
-
-  const { error } =
-    await db
-      .from("profesionales")
-      .insert({
-
-        negocio_id,
-
-        nombre,
-
-        especialidad:
-          $("profEspecialidad")
-            .value
-            .trim()
-          || null,
-
-        activo: true
-
-      });
-
+  const { error } = await db
+    .from("profesionales")
+    .insert({
+      negocio_id,
+      nombre,
+      especialidad:
+        $("profEspecialidad").value.trim() || null,
+      activo: true
+    });
 
   if (error) {
-
-    return msg(
-      error.message,
-      true
-    );
-
+    return msg(error.message, true);
   }
 
-
   e.target.reset();
-
 
   rellenarNegocios(
     $("profNegocio")
   );
 
-
-  msg(
-    "Profesional creado."
-  );
-
+  msg("Profesional creado.");
 
   await cargarProfesionales();
-
-  await llenarProfesionalesHorario();
 }
 
-
 async function cargarProfesionales() {
-
   const negocio_id =
-
     $("profNegocio")?.value ||
-
     negocios[0]?.id;
 
-
   if (!negocio_id) {
-
     if ($("listaProfesionalesSA")) {
-
-      $("listaProfesionalesSA").innerHTML = `
-        <div class="sin-resultados">
-          Todavía no hay negocios.
-        </div>
-      `;
-
+      $("listaProfesionalesSA").innerHTML =
+        '<div class="sin-resultados">Todavía no hay negocios.</div>';
     }
 
     return;
   }
 
-
   $("profNegocio").value =
     negocio_id;
 
-
-  const {
-    data,
-    error
-  } =
-    await db
-      .from("profesionales")
-      .select(
-        "id,nombre,especialidad,activo,usuario_id"
-      )
-      .eq(
-        "negocio_id",
-        negocio_id
-      )
-      .order("nombre");
-
+  const { data, error } = await db
+    .from("profesionales")
+    .select(
+      "id,nombre,especialidad,activo,usuario_id"
+    )
+    .eq("negocio_id", negocio_id)
+    .order("nombre");
 
   if (error) {
-
-    return msg(
-      error.message,
-      true
-    );
-
+    return msg(error.message, true);
   }
 
-
   $("listaProfesionalesSA").innerHTML =
-
     (data || []).map(p => `
-
       <div class="sa-item">
 
         <h4>
@@ -793,43 +366,30 @@ async function cargarProfesionales() {
         </h4>
 
         <div class="sa-muted">
-
           ${AR.escape(
             p.especialidad ||
             "Sin especialidad"
           )}
-
         </div>
 
         <div class="sa-muted">
-
           ${
             p.usuario_id
               ? "Con acceso"
               : "Sin acceso"
           }
-
           ·
-
           ${
             p.activo
               ? "Activo"
               : "Inactivo"
           }
-
         </div>
 
       </div>
-
     `).join("")
-
     ||
-
-    `
-      <div class="sin-resultados">
-        Sin profesionales.
-      </div>
-    `;
+    '<div class="sin-resultados">Sin profesionales.</div>';
 }
 
 
@@ -838,182 +398,113 @@ async function cargarProfesionales() {
 ========================================================= */
 
 async function crearServicio(e) {
-
   e.preventDefault();
-
 
   const negocio_id =
     $("servNegocio").value;
 
-
   if (!negocio_id) {
-
     return msg(
       "Selecciona un negocio.",
       true
     );
-
   }
 
-
   const nombre =
-    $("servNombre")
-      .value
-      .trim();
-
+    $("servNombre").value.trim();
 
   if (!nombre) {
-
     return msg(
       "Escribe el nombre del servicio.",
       true
     );
-
   }
-
 
   const duracion =
     Number(
       $("servDuracion").value
     );
 
-
-  if (
-    !duracion ||
-    duracion <= 0
-  ) {
-
+  if (!duracion || duracion <= 0) {
     return msg(
       "La duración debe ser mayor a 0.",
       true
     );
-
   }
-
 
   const payload = {
-
     negocio_id,
-
     nombre,
-
     descripcion:
-      $("servDescripcion")
-        .value
-        .trim()
-      || null,
-
-    duracion_minutos:
-      duracion,
-
+      $("servDescripcion").value.trim() ||
+      null,
+    duracion_minutos: duracion,
     precio:
       Number(
-        $("servPrecio").value ||
-        0
+        $("servPrecio").value || 0
       ),
-
-    activo:
-      true
-
+    activo: true
   };
 
-
-  const { error } =
-    await db
-      .from("servicios")
-      .insert(payload);
-
+  const { error } = await db
+    .from("servicios")
+    .insert(payload);
 
   if (error) {
-
-    return msg(
-      error.message,
-      true
-    );
-
+    return msg(error.message, true);
   }
 
-
   e.target.reset();
-
 
   rellenarNegocios(
     $("servNegocio")
   );
 
-
   $("servDuracion").value =
     60;
 
-
-  msg(
-    "Servicio creado."
-  );
-
+  msg("Servicio creado.");
 
   await cargarServicios();
 }
 
-
 async function cargarServicios() {
-
   const negocio_id =
-
     $("servNegocio")?.value ||
-
     negocios[0]?.id;
 
-
   if (!negocio_id) {
-
     if ($("listaServiciosSA")) {
-
-      $("listaServiciosSA").innerHTML = `
-        <div class="sin-resultados">
-          Todavía no hay negocios.
-        </div>
-      `;
-
+      $("listaServiciosSA").innerHTML =
+        '<div class="sin-resultados">Todavía no hay negocios.</div>';
     }
 
     return;
   }
 
-
   $("servNegocio").value =
     negocio_id;
 
-
-  const {
-    data,
-    error
-  } =
-    await db
-      .from("servicios")
-      .select(
-        "id,nombre,descripcion,duracion_minutos,precio,activo"
-      )
-      .eq(
-        "negocio_id",
-        negocio_id
-      )
-      .order("nombre");
-
+  const { data, error } = await db
+    .from("servicios")
+    .select(
+      "id,nombre,descripcion,duracion_minutos,precio,activo"
+    )
+    .eq(
+      "negocio_id",
+      negocio_id
+    )
+    .order("nombre");
 
   if (error) {
-
     return msg(
       error.message,
       true
     );
-
   }
 
-
   $("listaServiciosSA").innerHTML =
-
     (data || []).map(s => `
-
       <div class="sa-item">
 
         <h4>
@@ -1021,129 +512,84 @@ async function cargarServicios() {
         </h4>
 
         <div class="sa-muted">
-
           ${s.duracion_minutos} min
-
           ·
-
           ${AR.dinero(s.precio)}
-
           ·
-
           ${
             s.activo
               ? "Activo"
               : "Inactivo"
           }
-
         </div>
 
       </div>
-
     `).join("")
-
     ||
-
-    `
-      <div class="sin-resultados">
-        Sin servicios.
-      </div>
-    `;
+    '<div class="sin-resultados">Sin servicios.</div>';
 }
 
 
 /* =========================================================
-   HORARIOS - PROFESIONALES
+   SELECT DE PROFESIONALES PARA HORARIOS
 ========================================================= */
 
 async function llenarProfesionalesHorario() {
-
   const negocio_id =
-
     $("horNegocio")?.value ||
-
     negocios[0]?.id;
-
 
   if (!negocio_id) {
 
-    $("horProfesional").innerHTML = `
-      <option value="">
-        Sin negocios
-      </option>
-    `;
+    $("horProfesional").innerHTML =
+      '<option value="">Sin negocios</option>';
 
-    $("horServicio").innerHTML = `
-      <option value="">
-        Sin servicios
-      </option>
-    `;
+    $("horServicio").innerHTML =
+      '<option value="">Sin servicios</option>';
 
     return;
   }
 
-
   $("horNegocio").value =
     negocio_id;
 
-
-  const {
-    data,
-    error
-  } =
-    await db
-      .from("profesionales")
-      .select("id,nombre")
-      .eq(
-        "negocio_id",
-        negocio_id
-      )
-      .eq(
-        "activo",
-        true
-      )
-      .order("nombre");
-
+  const { data, error } = await db
+    .from("profesionales")
+    .select("id,nombre")
+    .eq(
+      "negocio_id",
+      negocio_id
+    )
+    .eq(
+      "activo",
+      true
+    )
+    .order("nombre");
 
   if (error) {
-
     return msg(
       error.message,
       true
     );
-
   }
 
-
   $("horProfesional").innerHTML =
+    '<option value="">Selecciona</option>' +
+    (data || []).map(p =>
+      `
+        <option value="${p.id}">
+          ${AR.escape(p.nombre)}
+        </option>
+      `
+    ).join("");
 
-    `
-      <option value="">
-        Selecciona
-      </option>
-    `
-
-    +
-
-    (data || []).map(p => `
-
-      <option value="${p.id}">
-        ${AR.escape(p.nombre)}
-      </option>
-
-    `).join("");
-
-
-  $("horServicio").innerHTML = `
-    <option value="">
-      Selecciona profesional
-    </option>
-  `;
+  $("horServicio").innerHTML =
+    '<option value="">Selecciona profesional</option>';
 }
 
 
 /* =========================================================
-   HORARIOS - SERVICIOS
+   SELECT DE SERVICIOS PARA HORARIOS
 ========================================================= */
 
 async function llenarServiciosHorario() {
@@ -1151,68 +597,46 @@ async function llenarServiciosHorario() {
   const profesional_id =
     $("horProfesional").value;
 
-
   if (!profesional_id) {
 
-    $("horServicio").innerHTML = `
-      <option value="">
-        Selecciona profesional
-      </option>
-    `;
+    $("horServicio").innerHTML =
+      '<option value="">Selecciona profesional</option>';
 
     return;
   }
 
-
   const negocio_id =
     $("horNegocio").value;
 
-
-  const {
-    data,
-    error
-  } =
-    await db
-      .from("servicios")
-      .select("id,nombre")
-      .eq(
-        "negocio_id",
-        negocio_id
-      )
-      .eq(
-        "activo",
-        true
-      )
-      .order("nombre");
-
+  const { data, error } = await db
+    .from("servicios")
+    .select("id,nombre")
+    .eq(
+      "negocio_id",
+      negocio_id
+    )
+    .eq(
+      "activo",
+      true
+    )
+    .order("nombre");
 
   if (error) {
-
     return msg(
       error.message,
       true
     );
-
   }
 
-
   $("horServicio").innerHTML =
-
-    `
-      <option value="">
-        Selecciona
-      </option>
-    `
-
-    +
-
-    (data || []).map(s => `
-
-      <option value="${s.id}">
-        ${AR.escape(s.nombre)}
-      </option>
-
-    `).join("");
+    '<option value="">Selecciona</option>' +
+    (data || []).map(s =>
+      `
+        <option value="${s.id}">
+          ${AR.escape(s.nombre)}
+        </option>
+      `
+    ).join("");
 }
 
 
@@ -1230,24 +654,16 @@ function sumarMinutos(
       .split(":")
       .map(Number);
 
-
   const total =
     h * 60 +
     m +
     min;
 
-
   return `${String(
     Math.floor(total / 60) % 24
-  ).padStart(
-    2,
-    "0"
-  )}:${String(
+  ).padStart(2, "0")}:${String(
     total % 60
-  ).padStart(
-    2,
-    "0"
-  )}:00`;
+  ).padStart(2, "0")}:00`;
 }
 
 
@@ -1259,18 +675,14 @@ async function crearHorario(e) {
 
   e.preventDefault();
 
-
   const profesional_id =
     $("horProfesional").value;
-
 
   const servicio_id =
     $("horServicio").value;
 
-
   const hora =
     $("horHora").value;
-
 
   if (
     !profesional_id ||
@@ -1282,25 +694,21 @@ async function crearHorario(e) {
       "Completa profesional, servicio y hora.",
       true
     );
-
   }
-
 
   const {
     data: servicio,
     error: servicioError
-  } =
-    await db
-      .from("servicios")
-      .select(
-        "duracion_minutos"
-      )
-      .eq(
-        "id",
-        servicio_id
-      )
-      .single();
-
+  } = await db
+    .from("servicios")
+    .select(
+      "duracion_minutos"
+    )
+    .eq(
+      "id",
+      servicio_id
+    )
+    .single();
 
   if (servicioError) {
 
@@ -1308,40 +716,27 @@ async function crearHorario(e) {
       servicioError.message,
       true
     );
-
   }
-
-
-  /*
-    Asociamos el servicio
-    al profesional automáticamente.
-  */
 
   const {
     error: asignacionError
-  } =
-    await db
-      .from(
-        "profesional_servicios"
-      )
-      .upsert(
-        {
+  } = await db
+    .from(
+      "profesional_servicios"
+    )
+    .upsert(
+      {
+        profesional_id,
+        servicio_id
+      },
+      {
+        onConflict:
+          "profesional_id,servicio_id",
 
-          profesional_id,
-          servicio_id
-
-        },
-        {
-
-          onConflict:
-            "profesional_id,servicio_id",
-
-          ignoreDuplicates:
-            true
-
-        }
-      );
-
+        ignoreDuplicates:
+          true
+      }
+    );
 
   if (asignacionError) {
 
@@ -1349,9 +744,7 @@ async function crearHorario(e) {
       asignacionError.message,
       true
     );
-
   }
-
 
   const payload = {
 
@@ -1381,15 +774,11 @@ async function crearHorario(e) {
 
     activo:
       true
-
   };
 
-
-  const { error } =
-    await db
-      .from("horarios")
-      .insert(payload);
-
+  const { error } = await db
+    .from("horarios")
+    .insert(payload);
 
   if (error) {
 
@@ -1397,25 +786,21 @@ async function crearHorario(e) {
       error.message,
       true
     );
-
   }
-
 
   msg(
     "Horario agregado."
   );
 
-
   $("horHora").value =
     "";
-
 
   await cargarHorarios();
 }
 
 
 /* =========================================================
-   ICONO DEL SERVICIO
+   ICONOS DE MODALIDAD
 ========================================================= */
 
 function iconoServicio(nombre) {
@@ -1424,82 +809,62 @@ function iconoServicio(nombre) {
     String(nombre || "")
       .toLowerCase();
 
-
   if (
     texto.includes("línea") ||
     texto.includes("linea") ||
     texto.includes("online")
   ) {
-
     return "💻";
-
   }
-
 
   if (
     texto.includes("presencial")
   ) {
-
     return "🏢";
-
   }
-
 
   return "•";
 }
 
 
 /* =========================================================
-   CARGAR HORARIOS
-   AGRUPADOS POR DÍA → PROFESIONAL → HORA
+   HORARIOS AGRUPADOS
+   DÍA → PROFESIONAL → HORA → SERVICIOS
 ========================================================= */
 
 async function cargarHorarios() {
 
   const negocio_id =
-
     $("horNegocio")?.value ||
-
     negocios[0]?.id;
-
 
   if (!negocio_id) {
 
     if ($("listaHorariosSA")) {
 
-      $("listaHorariosSA").innerHTML = `
-        <div class="sin-resultados">
-          Todavía no hay negocios.
-        </div>
-      `;
-
+      $("listaHorariosSA").innerHTML =
+        '<div class="sin-resultados">Todavía no hay negocios.</div>';
     }
 
     return;
   }
 
-
   $("horNegocio").value =
     negocio_id;
 
 
-  /*
-    Buscar profesionales
-    del negocio.
-  */
+  /* Buscar profesionales del negocio */
 
   const {
     data: profesionalesNegocio,
     error: profError
-  } =
-    await db
-      .from("profesionales")
-      .select("id,nombre")
-      .eq(
-        "negocio_id",
-        negocio_id
-      );
-
+  } = await db
+    .from("profesionales")
+    .select("id,nombre")
+    .eq(
+      "negocio_id",
+      negocio_id
+    );
 
   if (profError) {
 
@@ -1507,14 +872,10 @@ async function cargarHorarios() {
       profError.message,
       true
     );
-
   }
 
-
   const profesionales =
-    profesionalesNegocio ||
-    [];
-
+    profesionalesNegocio || [];
 
   const idsProfesionales =
     profesionales.map(
@@ -1524,29 +885,609 @@ async function cargarHorarios() {
 
   if (!idsProfesionales.length) {
 
-    $("listaHorariosSA").innerHTML = `
-      <div class="sin-resultados">
-        Sin profesionales.
-      </div>
-    `;
+    $("listaHorariosSA").innerHTML =
+      '<div class="sin-resultados">Sin profesionales.</div>';
 
     return;
   }
 
 
+  /* Buscar horarios */
+
+  const {
+    data: horarios,
+    error: horariosError
+  } = await db
+    .from("horarios")
+    .select(`
+      id,
+      profesional_id,
+      servicio_id,
+      dia_semana,
+      hora_slot,
+      hora_inicio,
+      hora_fin,
+      activo
+    `)
+    .in(
+      "profesional_id",
+      idsProfesionales
+    )
+    .eq(
+      "activo",
+      true
+    )
+    .order(
+      "dia_semana"
+    )
+    .order(
+      "hora_slot"
+    );
+
+  if (horariosError) {
+
+    return msg(
+      horariosError.message,
+      true
+    );
+  }
+
+
+  /* Buscar servicios */
+
+  const {
+    data: servicios,
+    error: serviciosError
+  } = await db
+    .from("servicios")
+    .select(
+      "id,nombre"
+    )
+    .eq(
+      "negocio_id",
+      negocio_id
+    );
+
+  if (serviciosError) {
+
+    return msg(
+      serviciosError.message,
+      true
+    );
+  }
+
+
+  const mapaProfesionales =
+    Object.fromEntries(
+      profesionales.map(
+        p => [
+          p.id,
+          p.nombre
+        ]
+      )
+    );
+
+
+  const mapaServicios =
+    Object.fromEntries(
+      (servicios || []).map(
+        s => [
+          s.id,
+          s.nombre
+        ]
+      )
+    );
+
+
   /*
-    Buscar horarios
+    Agrupación:
+
+    Lunes
+      Laura
+        10:00
+          Presencial
+          En línea
+        11:00
+          En línea
   */
+
+  const agrupados = {};
+
+
+  (horarios || []).forEach(h => {
+
+    const dia =
+      Number(
+        h.dia_semana
+      );
+
+    const profesional_id =
+      h.profesional_id;
+
+    const hora =
+      String(
+        h.hora_slot ||
+        h.hora_inicio ||
+        ""
+      ).slice(
+        0,
+        5
+      );
+
+
+    if (!agrupados[dia]) {
+      agrupados[dia] = {};
+    }
+
+
+    if (
+      !agrupados[dia][profesional_id]
+    ) {
+
+      agrupados[dia][profesional_id] = {};
+    }
+
+
+    if (
+      !agrupados[dia]
+        [profesional_id]
+        [hora]
+    ) {
+
+      agrupados[dia]
+        [profesional_id]
+        [hora] = {
+
+          hora,
+          servicios: []
+
+        };
+    }
+
+
+    const nombreServicio =
+      mapaServicios[
+        h.servicio_id
+      ] ||
+      "Servicio";
+
+
+    const yaExiste =
+      agrupados[dia]
+        [profesional_id]
+        [hora]
+        .servicios
+        .some(
+          servicio =>
+            servicio.id ===
+            h.servicio_id
+        );
+
+
+    if (!yaExiste) {
+
+      agrupados[dia]
+        [profesional_id]
+        [hora]
+        .servicios
+        .push({
+
+          id:
+            h.servicio_id,
+
+          nombre:
+            nombreServicio
+
+        });
+    }
+  });
+
+
+  /* Crear las tarjetas */
+
+  let html = "";
+
+
+  for (
+    let dia = 1;
+    dia <= 7;
+    dia++
+  ) {
+
+    const profesionalesDia =
+      agrupados[dia];
+
+
+    if (!profesionalesDia) {
+      continue;
+    }
+
+
+    html += `
+
+      <div style="
+        background:#ffffff;
+        border:1px solid #e5e0eb;
+        border-radius:16px;
+        padding:14px;
+        margin-bottom:12px;
+      ">
+
+        <div style="
+          font-size:15px;
+          font-weight:800;
+          color:#7255a8;
+          margin-bottom:12px;
+          text-transform:uppercase;
+        ">
+          ${dias[dia]}
+        </div>
+
+    `;
+
+
+    Object.keys(
+      profesionalesDia
+    ).forEach(
+      profesional_id => {
+
+        const nombreProfesional =
+          mapaProfesionales[
+            profesional_id
+          ] ||
+          "Profesional";
+
+
+        html += `
+
+          <div style="
+            margin-bottom:12px;
+          ">
+
+            <div style="
+              font-weight:700;
+              font-size:14px;
+              margin-bottom:7px;
+            ">
+              ${AR.escape(
+                nombreProfesional
+              )}
+            </div>
+
+        `;
+
+
+        const horas =
+          Object.values(
+            profesionalesDia[
+              profesional_id
+            ]
+          )
+          .sort(
+            (a, b) =>
+              a.hora.localeCompare(
+                b.hora
+              )
+          );
+
+
+        horas.forEach(slot => {
+
+          const serviciosHTML =
+            slot.servicios
+              .map(servicio => `
+
+                <span style="
+                  display:inline-flex;
+                  align-items:center;
+                  gap:4px;
+                  background:#f3eef9;
+                  color:#654a99;
+                  padding:4px 8px;
+                  border-radius:999px;
+                  font-size:11px;
+                  font-weight:600;
+                ">
+
+                  ${
+                    iconoServicio(
+                      servicio.nombre
+                    )
+                  }
+
+                  ${
+                    AR.escape(
+                      servicio.nombre
+                    )
+                  }
+
+                </span>
+
+              `)
+              .join("");
+
+
+          html += `
+
+            <div style="
+              display:flex;
+              align-items:center;
+              gap:8px;
+              padding:7px 0;
+              border-bottom:1px solid #f1edf4;
+              flex-wrap:wrap;
+            ">
+
+              <div style="
+                min-width:48px;
+                font-weight:800;
+                font-size:13px;
+              ">
+                ${slot.hora}
+              </div>
+
+              <div style="
+                display:flex;
+                gap:5px;
+                flex-wrap:wrap;
+              ">
+                ${serviciosHTML}
+              </div>
+
+            </div>
+
+          `;
+
+        });
+
+
+        html += `
+          </div>
+        `;
+
+      }
+    );
+
+
+    html += `
+      </div>
+    `;
+  }
+
+
+  $("listaHorariosSA").innerHTML =
+    html ||
+    '<div class="sin-resultados">Sin horarios.</div>';
+}
+
+
+/* =========================================================
+   CITAS
+========================================================= */
+
+async function cargarCitas() {
+
+  const filtro =
+    $("citasNegocio")?.value ||
+    "";
+
+  let q =
+    db
+      .from("citas")
+      .select(`
+        id,
+        negocio_id,
+        profesional_id,
+        servicio_id,
+        paciente_nombre,
+        fecha,
+        hora_inicio,
+        estado
+      `)
+      .order(
+        "fecha",
+        {
+          ascending:
+            false
+        }
+      )
+      .order(
+        "hora_inicio",
+        {
+          ascending:
+            true
+        }
+      )
+      .limit(300);
+
+  if (filtro) {
+
+    q =
+      q.eq(
+        "negocio_id",
+        filtro
+      );
+  }
 
   const {
     data,
     error
   } =
-    await db
-      .from("horarios")
-      .select(`
-        id,
-        profesional_id,
-        servicio_id,
-        dia_semana,
-        hora_sl
+    await q;
+
+  if (error) {
+
+    return msg(
+      error.message,
+      true
+    );
+  }
+
+  const [
+
+    {
+      data: ps,
+      error: psError
+    },
+
+    {
+      data: ss,
+      error: ssError
+    }
+
+  ] = await Promise.all([
+
+    db
+      .from(
+        "profesionales"
+      )
+      .select(
+        "id,nombre"
+      ),
+
+    db
+      .from(
+        "servicios"
+      )
+      .select(
+        "id,nombre"
+      )
+  ]);
+
+  if (psError) {
+
+    return msg(
+      psError.message,
+      true
+    );
+  }
+
+  if (ssError) {
+
+    return msg(
+      ssError.message,
+      true
+    );
+  }
+
+  const nm =
+    Object.fromEntries(
+
+      negocios.map(
+        x => [
+          x.id,
+          x.nombre
+        ]
+      )
+    );
+
+  const pm =
+    Object.fromEntries(
+
+      (ps || []).map(
+        x => [
+          x.id,
+          x.nombre
+        ]
+      )
+    );
+
+  const sm =
+    Object.fromEntries(
+
+      (ss || []).map(
+        x => [
+          x.id,
+          x.nombre
+        ]
+      )
+    );
+
+  $("tablaCitasSA").innerHTML =
+
+    (data || []).map(c => `
+
+      <tr>
+
+        <td>
+          ${c.fecha}
+        </td>
+
+        <td>
+          ${
+            String(
+              c.hora_inicio ||
+              ""
+            ).slice(
+              0,
+              5
+            )
+          }
+        </td>
+
+        <td>
+          ${
+            AR.escape(
+              nm[
+                c.negocio_id
+              ] ||
+              ""
+            )
+          }
+        </td>
+
+        <td>
+          ${
+            AR.escape(
+              c.paciente_nombre ||
+              ""
+            )
+          }
+        </td>
+
+        <td>
+          ${
+            AR.escape(
+              sm[
+                c.servicio_id
+              ] ||
+              ""
+            )
+          }
+        </td>
+
+        <td>
+          ${
+            AR.escape(
+              pm[
+                c.profesional_id
+              ] ||
+              ""
+            )
+          }
+        </td>
+
+        <td>
+          ${
+            AR.escape(
+              c.estado ||
+              ""
+            )
+          }
+        </td>
+
+      </tr>
+
+    `).join("")
+
+    ||
+
+    '<tr><td colspan="7">Sin citas.</td></tr>';
+}
+
+
+/* =========================================================
+   INICIAR
+========================================================= */
+
+init();
