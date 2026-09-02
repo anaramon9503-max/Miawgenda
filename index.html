@@ -41,7 +41,7 @@
       padding: 22px 14px 42px;
     }
 
-    button, input { font: inherit; }
+    button, input, select { font: inherit; }
 
     button { -webkit-tap-highlight-color: transparent; }
 
@@ -111,6 +111,57 @@
       border-radius: 13px;
       background: white;
       box-shadow: 0 5px 14px rgba(81, 56, 94, .09);
+    }
+
+    .negocio-logo {
+      width: 40px;
+      height: 40px;
+      flex: 0 0 40px;
+      border-radius: 13px;
+      object-fit: cover;
+      background: white;
+      box-shadow: 0 5px 14px rgba(81, 56, 94, .09);
+    }
+
+    .selector-servicio {
+      width: 100%;
+      appearance: none;
+      padding: 16px 46px 16px 16px;
+      border: 1px solid var(--borde);
+      border-radius: 17px;
+      background-color: #fcfafc;
+      color: var(--texto);
+      font-size: 16px;
+      font-weight: 750;
+      outline: none;
+      cursor: pointer;
+      background-image: linear-gradient(45deg, transparent 50%, var(--morado) 50%), linear-gradient(135deg, var(--morado) 50%, transparent 50%);
+      background-position: calc(100% - 21px) 50%, calc(100% - 15px) 50%;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+    }
+
+    .selector-servicio:focus {
+      border-color: var(--morado);
+      box-shadow: 0 0 0 4px rgba(111, 76, 127, .09);
+    }
+
+    .servicio-seleccionado-box {
+      margin-top: 10px;
+      padding: 14px 15px;
+      border: 1px solid var(--borde);
+      border-radius: 16px;
+      background: var(--morado-suave);
+      font-size: 13.5px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .servicio-seleccionado-box strong {
+      display: block;
+      color: var(--morado-oscuro);
+      font-size: 15px;
+      margin-bottom: 3px;
     }
 
     .negocio-label {
@@ -393,6 +444,21 @@
       cursor: pointer;
     }
 
+    .boton-whatsapp {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 13px 14px;
+      border: 0;
+      border-radius: 14px;
+      text-decoration: none;
+      text-align: center;
+      background: #1fa855;
+      color: white;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
     .nota {
       margin-top: 9px;
       color: var(--muted);
@@ -411,14 +477,15 @@
 <body>
   <main class="contenedor">
     <header class="hero">
-      <div class="marca">✦</div>
+      <div id="marcaIcono" class="marca">✦</div>
       <h1>Agenda tu cita</h1>
       <p>Elige tu servicio, profesional y horario disponible. Te tomará menos de un minuto.</p>
     </header>
 
     <section class="tarjeta">
       <div class="negocio-box">
-        <div class="negocio-icono">🏢</div>
+        <img id="logoNegocio" class="negocio-logo oculto" alt="Logo del negocio">
+        <div id="iconoNegocio" class="negocio-icono">🏢</div>
         <div>
           <div class="negocio-label">Estás reservando en</div>
           <div id="nombreNegocio" class="negocio">Cargando negocio...</div>
@@ -428,6 +495,12 @@
       <div class="paso">
         <div class="titulo-paso"><span class="numero">1</span><h2>Selecciona un servicio</h2></div>
         <div id="servicios" class="opciones"><div class="estado-carga">Cargando servicios...</div></div>
+        <div id="selectorServiciosWrap" class="oculto">
+          <select id="selectorServicios" class="selector-servicio" aria-label="Selecciona un servicio">
+            <option value="">Elige un servicio...</option>
+          </select>
+          <div id="detalleServicioSelector" class="servicio-seleccionado-box oculto"></div>
+        </div>
       </div>
 
       <div id="seccionProfesionales" class="paso oculto">
@@ -449,7 +522,7 @@
         <div class="titulo-paso"><span class="numero">5</span><h2>Tus datos</h2></div>
         <div class="datos-grid">
           <input class="campo" type="text" id="nombreCliente" placeholder="Nombre completo" autocomplete="name">
-          <input class="campo" type="tel" id="telefonoCliente" placeholder="Teléfono" inputmode="tel" autocomplete="tel" maxlength="20">
+          <input class="campo" type="tel" id="telefonoCliente" placeholder="Teléfono (10 dígitos)" inputmode="numeric" autocomplete="tel" maxlength="10" pattern="[0-9]{10}">
           <input class="campo" type="email" id="emailCliente" placeholder="Correo electrónico (opcional)" autocomplete="email">
           <button id="confirmar" class="boton-confirmar">Confirmar cita</button>
         </div>
@@ -471,6 +544,7 @@
         <h3>¡Tu cita quedó registrada!</h3>
         <p>Guardamos correctamente tu reservación.</p>
         <div id="confirmacionDatos" class="confirmacion-datos"></div>
+        <a id="whatsappNegocio" class="boton-whatsapp oculto" target="_blank" rel="noopener">💬 Contactar por WhatsApp</a>
         <button id="otraCita" class="boton-otra" type="button">Agendar otra cita</button>
       </div>
     </section>
@@ -525,13 +599,67 @@ function irA(id) {
   setTimeout(() => $(id)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
 }
 
+function valorNegocio(obj, nombres) {
+  for (const nombre of nombres) {
+    const valor = obj?.[nombre];
+    if (valor !== null && valor !== undefined && String(valor).trim() !== "") return valor;
+  }
+  return null;
+}
+
+function aplicarPersonalizacionNegocio(negocio) {
+  const logo = valorNegocio(negocio, ["logo_url", "logo", "imagen_url", "imagen"]);
+  const color = valorNegocio(negocio, ["color_marca", "color_primario", "color", "color_hex"]);
+  const whatsapp = valorNegocio(negocio, ["whatsapp", "telefono_whatsapp", "telefono"]);
+
+  if (logo && /^https?:\/\//i.test(String(logo))) {
+    $("logoNegocio").src = String(logo);
+    $("logoNegocio").classList.remove("oculto");
+    $("iconoNegocio").classList.add("oculto");
+  }
+
+  if (color && /^#[0-9a-f]{6}$/i.test(String(color).trim())) {
+    document.documentElement.style.setProperty("--morado", String(color).trim());
+  }
+
+  if (whatsapp) {
+    let numero = String(whatsapp).replace(/\D/g, "");
+    if (numero.length === 10) numero = "52" + numero;
+    if (numero.length >= 10) {
+      const link = $("whatsappNegocio");
+      link.href = `https://wa.me/${numero}`;
+      link.classList.remove("oculto");
+    }
+  }
+}
+
+async function seleccionarServicio(servicio, elementoVisual = null) {
+  document.querySelectorAll("#servicios .opcion").forEach(item => item.classList.remove("seleccionado"));
+  if (elementoVisual) elementoVisual.classList.add("seleccionado");
+
+  servicioSeleccionado = servicio;
+  profesionalSeleccionado = null;
+  fechaSeleccionada = null;
+  horaSeleccionada = null;
+
+  $("seccionFecha").classList.add("oculto");
+  $("seccionHorarios").classList.add("oculto");
+  $("seccionDatos").classList.add("oculto");
+  $("confirmacion").classList.add("oculto");
+  $("resumen").classList.add("oculto");
+  ocultarMensaje();
+
+  await cargarProfesionales(servicio.id);
+  irA("seccionProfesionales");
+}
+
 async function cargarAgenda() {
   const params = new URLSearchParams(window.location.search);
   const negocioParametro = params.get("negocio");
 
   let consultaNegocio = db
     .from("negocios_publicos")
-    .select("id, nombre")
+    .select("*")
     .order("nombre")
     .limit(1);
 
@@ -549,6 +677,7 @@ async function cargarAgenda() {
   negocioActual = negocio;
   $("nombreNegocio").textContent = negocio.nombre;
   document.title = `Agenda | ${negocio.nombre}`;
+  aplicarPersonalizacionNegocio(negocio);
 
   const { data: servicios, error: errorServicios } = await db
     .from("servicios_publicos")
@@ -567,44 +696,66 @@ async function cargarAgenda() {
   }
 
   $("servicios").innerHTML = "";
+  $("selectorServiciosWrap").classList.add("oculto");
+  $("detalleServicioSelector").classList.add("oculto");
 
-  servicios.forEach(servicio => {
-    const boton = document.createElement("button");
-    boton.type = "button";
-    boton.className = "opcion";
-    const descripcion = escapar(servicio.descripcion || "");
-    const precio = servicio.precio !== null && servicio.precio !== undefined
-      ? `<span class="precio">$${Number(servicio.precio).toFixed(2)}</span>`
-      : "";
+  // Con 1 o 2 servicios se muestran tarjetas. Con 3 o más, un selector compacto.
+  if (servicios.length >= 3) {
+    $("servicios").classList.add("oculto");
+    $("selectorServiciosWrap").classList.remove("oculto");
 
-    boton.innerHTML = `
-      <span class="titulo-opcion">${escapar(servicio.nombre)}</span>
-      <span class="detalle-opcion">${descripcion ? descripcion + "<br>" : ""}⏱ ${Number(servicio.duracion_minutos) || 0} minutos</span>
-      ${precio}
-    `;
+    const selector = $("selectorServicios");
+    selector.innerHTML = '<option value="">Elige un servicio...</option>';
 
-    boton.addEventListener("click", async () => {
-      document.querySelectorAll("#servicios .opcion").forEach(item => item.classList.remove("seleccionado"));
-      boton.classList.add("seleccionado");
-
-      servicioSeleccionado = servicio;
-      profesionalSeleccionado = null;
-      fechaSeleccionada = null;
-      horaSeleccionada = null;
-
-      $("seccionFecha").classList.add("oculto");
-      $("seccionHorarios").classList.add("oculto");
-      $("seccionDatos").classList.add("oculto");
-      $("confirmacion").classList.add("oculto");
-      $("resumen").classList.add("oculto");
-      ocultarMensaje();
-
-      await cargarProfesionales(servicio.id);
-      irA("seccionProfesionales");
+    servicios.forEach(servicio => {
+      const opcion = document.createElement("option");
+      opcion.value = servicio.id;
+      const precio = servicio.precio !== null && servicio.precio !== undefined
+        ? ` · $${Number(servicio.precio).toFixed(2)}`
+        : "";
+      opcion.textContent = `${servicio.nombre}${precio}`;
+      selector.appendChild(opcion);
     });
 
-    $("servicios").appendChild(boton);
-  });
+    selector.onchange = async () => {
+      const servicio = servicios.find(item => String(item.id) === selector.value);
+      if (!servicio) {
+        $("detalleServicioSelector").classList.add("oculto");
+        return;
+      }
+
+      const detalle = $("detalleServicioSelector");
+      detalle.innerHTML = `
+        <strong>${escapar(servicio.nombre)}</strong>
+        ${servicio.descripcion ? escapar(servicio.descripcion) + "<br>" : ""}
+        ⏱ ${Number(servicio.duracion_minutos) || 0} minutos
+        ${servicio.precio !== null && servicio.precio !== undefined ? ` · $${Number(servicio.precio).toFixed(2)}` : ""}
+      `;
+      detalle.classList.remove("oculto");
+      await seleccionarServicio(servicio);
+    };
+  } else {
+    $("servicios").classList.remove("oculto");
+
+    servicios.forEach(servicio => {
+      const boton = document.createElement("button");
+      boton.type = "button";
+      boton.className = "opcion";
+      const descripcion = escapar(servicio.descripcion || "");
+      const precio = servicio.precio !== null && servicio.precio !== undefined
+        ? `<span class="precio">$${Number(servicio.precio).toFixed(2)}</span>`
+        : "";
+
+      boton.innerHTML = `
+        <span class="titulo-opcion">${escapar(servicio.nombre)}</span>
+        <span class="detalle-opcion">${descripcion ? descripcion + "<br>" : ""}⏱ ${Number(servicio.duracion_minutos) || 0} minutos</span>
+        ${precio}
+      `;
+
+      boton.addEventListener("click", () => seleccionarServicio(servicio, boton));
+      $("servicios").appendChild(boton);
+    });
+  }
 }
 
 async function cargarProfesionales(servicioId) {
@@ -756,6 +907,10 @@ function actualizarResumen() {
   $("resumen").classList.remove("oculto");
 }
 
+$("telefonoCliente").addEventListener("input", (e) => {
+  e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+});
+
 $("confirmar").addEventListener("click", confirmarCita);
 
 async function confirmarCita() {
@@ -766,7 +921,7 @@ async function confirmarCita() {
   if (nombre.length < 2) return mostrarError("Escribe el nombre del paciente.");
 
   const soloDigitos = telefono.replace(/\D/g, "");
-  if (soloDigitos.length < 7) return mostrarError("Escribe un número de teléfono válido.");
+  if (soloDigitos.length !== 10) return mostrarError("El teléfono debe tener exactamente 10 dígitos.");
 
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return mostrarError("Revisa el correo electrónico.");
@@ -794,7 +949,7 @@ async function confirmarCita() {
     p_profesional_id: profesionalSeleccionado.id,
     p_servicio_id: servicioSeleccionado.id,
     p_nombre: nombre,
-    p_telefono: telefono,
+    p_telefono: soloDigitos,
     p_email: email || null,
     p_fecha: fechaSeleccionada,
     p_hora_inicio: horaSeleccionada
@@ -827,6 +982,12 @@ async function confirmarCita() {
 
 function mostrarConfirmacion(datos) {
   $("mensaje").className = "mensaje oculto";
+  const whatsapp = $("whatsappNegocio");
+  if (whatsapp && !whatsapp.classList.contains("oculto")) {
+    const base = whatsapp.href.split("?text=")[0];
+    const texto = `Hola, acabo de agendar una cita en ${negocioActual?.nombre || "el negocio"}: ${datos.servicio}, ${fechaBonita(datos.fecha)} a las ${horaBonita(datos.hora)}.`;
+    whatsapp.href = `${base}?text=${encodeURIComponent(texto)}`;
+  }
   $("confirmacionDatos").innerHTML = `
     <strong>${escapar(datos.nombre)}</strong><br>
     ${escapar(datos.servicio)}<br>
@@ -860,6 +1021,8 @@ $("otraCita").addEventListener("click", () => {
   $("resumen").classList.add("oculto");
   $("confirmacion").classList.add("oculto");
   document.querySelectorAll(".seleccionado").forEach(el => el.classList.remove("seleccionado"));
+  if ($("selectorServicios")) $("selectorServicios").value = "";
+  if ($("detalleServicioSelector")) $("detalleServicioSelector").classList.add("oculto");
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 

@@ -128,6 +128,7 @@ const navProfesional =
 // =====================================================
 
 let negocioActualId = null;
+let negocioActualDatos = null;
 let profesionalActualId = null;
 let esProfesional = false;
 let esAdmin = false;
@@ -418,6 +419,7 @@ async function abrirPanelNormal(user) {
   // Vista ADMIN.
   if (esAdmin) {
     navAdmin?.classList.remove("oculto");
+    document.getElementById("configNegocio")?.classList.remove("oculto");
     campoFiltroProfesional?.classList.remove("oculto");
     campoCitaProfesional?.classList.remove("oculto");
 
@@ -542,7 +544,7 @@ async function cargarNombreNegocio() {
   const { data, error } =
     await db
       .from("negocios")
-      .select("nombre")
+      .select("nombre,whatsapp,logo_url,color_marca,direccion,mensaje_confirmacion")
       .eq(
         "id",
         negocioActualId
@@ -559,8 +561,11 @@ async function cargarNombreNegocio() {
     return;
   }
 
-  nombreNegocio.textContent =
-    data.nombre;
+  negocioActualDatos = data;
+  nombreNegocio.textContent = data.nombre;
+  const setv=(id,v)=>{const el=document.getElementById(id); if(el) el.value=v||"";};
+  setv("cfgNombre",data.nombre); setv("cfgWhatsapp",data.whatsapp); setv("cfgDireccion",data.direccion);
+  setv("cfgLogo",data.logo_url); setv("cfgMensaje",data.mensaje_confirmacion); setv("cfgColor",data.color_marca||"#7b55da");
 }
 
 
@@ -1508,6 +1513,9 @@ function botonesPorEstado(cita) {
       ✕ Cancelar
     </button>`;
 
+  const whatsapp = cita.paciente_telefono ? `
+    <button type="button" onclick="abrirWhatsAppCita('${id}')">💬 WhatsApp</button>` : "";
+
   const eliminar = `
     <button type="button" onclick="eliminarCita('${id}')">
       🗑️ Eliminar
@@ -1515,22 +1523,22 @@ function botonesPorEstado(cita) {
 
   switch (cita.estado) {
     case "pendiente":
-      return confirmar + reagendar + cancelar + eliminar;
+      return confirmar + whatsapp + reagendar + cancelar + eliminar;
 
     case "confirmada":
-      return reagendar + atendida + noAsistio + cancelar;
+      return whatsapp + reagendar + atendida + noAsistio + cancelar;
 
     case "cancelada":
-      return reagendar + eliminar;
+      return whatsapp + reagendar + eliminar;
 
     case "atendida":
       return "";
 
     case "no_asistio":
-      return reagendar + eliminar;
+      return whatsapp + reagendar + eliminar;
 
     default:
-      return reagendar + eliminar;
+      return whatsapp + reagendar + eliminar;
   }
 }
 
@@ -2034,6 +2042,68 @@ async function cargarHorariosDisponibles() {
 
 
 // =====================================================
+// WHATSAPP Y CONFIGURACIÓN DEL NEGOCIO
+// =====================================================
+function numeroWhatsApp(valor){
+  let n=String(valor||"").replace(/\D/g,"");
+  if(n.length===10) n="52"+n;
+  return n;
+}
+function fechaMensaje(fecha){
+  try{return new Date(fecha+"T12:00:00").toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});}catch{return fecha;}
+}
+async function abrirWhatsAppCita(id){
+  const {data:c,error}=await db.from("citas").select("paciente_nombre,paciente_telefono,fecha,hora_inicio,profesional_id,servicio_id").eq("id",id).maybeSingle();
+  if(error||!c) return mostrarError("No fue posible abrir WhatsApp.");
+  const numero=numeroWhatsApp(c.paciente_telefono); if(!numero) return mostrarError("La cita no tiene teléfono.");
+  const [{data:p},{data:sv}] = await Promise.all([
+    db.from("profesionales").select("nombre").eq("id",c.profesional_id).maybeSingle(),
+    db.from("servicios").select("nombre").eq("id",c.servicio_id).maybeSingle()
+  ]);
+  const negocio=negocioActualDatos?.nombre||nombreNegocio?.textContent||"";
+  const dir=negocioActualDatos?.direccion ? `\n📍 ${negocioActualDatos.direccion}` : "";
+  const texto=`Hola ${c.paciente_nombre||""} 👋\nTu cita en ${negocio} está registrada.\n🗓️ ${fechaMensaje(c.fecha)}\n🕐 ${horaCorta(c.hora_inicio)}\n✨ ${sv?.nombre||"Cita"}\n👤 ${p?.nombre||""}${dir}\n\n${negocioActualDatos?.mensaje_confirmacion||"¡Te esperamos!"}`;
+  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`,"_blank","noopener");
+}
+window.abrirWhatsAppCita=abrirWhatsAppCita;
+
+async function guardarConfiguracionNegocio(){
+  if(!esAdmin||!negocioActualId) return;
+  const val=id=>document.getElementById(id)?.value?.trim()||null;
+  const payload={nombre:val("cfgNombre"),whatsapp:val("cfgWhatsapp"),direccion:val("cfgDireccion"),logo_url:val("cfgLogo"),color_marca:val("cfgColor"),mensaje_confirmacion:val("cfgMensaje")};
+  if(!payload.nombre) return mostrarError("El nombre del negocio es obligatorio.");
+  const {error}=await db.from("negocios").update(payload).eq("id",negocioActualId);
+  if(error) return mostrarError("No fue posible guardar los datos del negocio: "+error.message);
+  mostrarExito("Datos del negocio guardados."); await cargarNombreNegocio();
+}
+
+// Liga pública del negocio (visible para administrador y profesional)
+function ligaAgendaPublica(){
+  return `${window.location.origin}/?negocio=${encodeURIComponent(negocioActualId || "")}`;
+}
+
+document.getElementById("btnVerAgendaPublica")?.addEventListener("click",()=>{
+  if(!negocioActualId) return mostrarError("No se encontró el negocio.");
+  window.open(ligaAgendaPublica(),"_blank","noopener");
+});
+
+document.getElementById("btnCopiarAgendaPublica")?.addEventListener("click",async()=>{
+  if(!negocioActualId) return mostrarError("No se encontró el negocio.");
+  const liga=ligaAgendaPublica();
+  try { await navigator.clipboard.writeText(liga); mostrarExito("Liga de agenda pública copiada ✓"); }
+  catch { window.prompt("Copia la liga de agenda pública:",liga); }
+});
+
+function limitarTelefono10(input){
+  if(!input) return;
+  input.addEventListener("input",()=>{ input.value=input.value.replace(/\D/g,"").slice(0,10); });
+}
+limitarTelefono10(document.getElementById("citaTelefono"));
+limitarTelefono10(document.getElementById("cfgWhatsapp"));
+
+document.getElementById("btnGuardarNegocio")?.addEventListener("click",guardarConfiguracionNegocio);
+
+// =====================================================
 // GUARDAR CITA
 // =====================================================
 
@@ -2046,6 +2116,11 @@ async function guardarCita() {
 
   const telefono =
     citaTelefono.value.trim();
+
+  if (!/^\d{10}$/.test(telefono)) {
+    mostrarError("El teléfono del paciente debe tener exactamente 10 dígitos.");
+    return;
+  }
 
   const email =
     citaEmail.value.trim();
@@ -2220,7 +2295,7 @@ async function guardarCita() {
 
     } else {
 
-      const { error } =
+      const { data: citaCreada, error } =
         await db
           .from("citas")
           .insert({
@@ -2253,7 +2328,9 @@ async function guardarCita() {
 
             estado:
               "pendiente"
-          });
+          })
+          .select("id")
+          .single();
 
       if (error) {
         throw error;
@@ -2262,6 +2339,9 @@ async function guardarCita() {
       mostrarExito(
         "Cita agregada correctamente."
       );
+      if (citaCreada?.id && confirm("¿Abrir WhatsApp con la confirmación para el paciente?")) {
+        await abrirWhatsAppCita(citaCreada.id);
+      }
     }
 
     cerrarFormularioCita();
