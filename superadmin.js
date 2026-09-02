@@ -318,6 +318,9 @@ async function crearProfesional(e) {
     );
   }
 
+  const whatsapp = ($("profWhatsapp")?.value || "").replace(/\D/g, "").slice(0, 10);
+  if (whatsapp && !/^\d{10}$/.test(whatsapp)) return msg("El WhatsApp debe tener 10 dígitos.", true);
+
   const { error } = await db
     .from("profesionales")
     .insert({
@@ -325,6 +328,7 @@ async function crearProfesional(e) {
       nombre,
       especialidad:
         $("profEspecialidad").value.trim() || null,
+      whatsapp: whatsapp || null,
       activo: true
     });
 
@@ -363,7 +367,7 @@ async function cargarProfesionales() {
   const { data, error } = await db
     .from("profesionales")
     .select(
-      "id,nombre,especialidad,activo,usuario_id"
+      "id,nombre,especialidad,whatsapp,activo,usuario_id"
     )
     .eq("negocio_id", negocio_id)
     .order("nombre");
@@ -386,6 +390,7 @@ async function cargarProfesionales() {
             "Sin especialidad"
           )}
         </div>
+        <div class="sa-muted">📱 ${AR.escape(p.whatsapp || "Sin WhatsApp")}</div>
 
         <div class="sa-muted">
           ${
@@ -1359,7 +1364,7 @@ async function copiarAgenda(id) {
 window.copiarAgenda = copiarAgenda;
 async function toggleNegocio(id,activo){const {error}=await db.from("negocios").update({activo:!activo}).eq("id",id);if(error)return msg(error.message,true);msg(activo?"Negocio desactivado.":"Negocio activado.");await cargarNegocios();}
 async function eliminarNegocio(id){if(!confirm("¿Eliminar este negocio? También puede afectar sus datos relacionados."))return;const {error}=await db.from("negocios").delete().eq("id",id);if(error)return msg("No se pudo eliminar: "+error.message,true);msg("Negocio eliminado.");await cargarNegocios();}
-async function editarProfesional(id){const {data:p,error:e}=await db.from("profesionales").select("nombre,especialidad").eq("id",id).single();if(e)return msg(e.message,true);const nombre=prompt("Nombre:",p.nombre||"");if(!nombre?.trim())return;const especialidad=prompt("Especialidad:",p.especialidad||"");const {error}=await db.from("profesionales").update({nombre:nombre.trim(),especialidad:especialidad?.trim()||null}).eq("id",id);if(error)return msg(error.message,true);msg("Profesional actualizado.");await cargarProfesionales();}
+async function editarProfesional(id){const {data:p,error:e}=await db.from("profesionales").select("nombre,especialidad,whatsapp").eq("id",id).single();if(e)return msg(e.message,true);const nombre=prompt("Nombre:",p.nombre||"");if(!nombre?.trim())return;const especialidad=prompt("Especialidad:",p.especialidad||"");const w=prompt("WhatsApp (10 dígitos):",p.whatsapp||"");if(w===null)return;const whatsapp=String(w).replace(/\D/g,"").slice(0,10);if(whatsapp&&!/^\d{10}$/.test(whatsapp))return msg("El WhatsApp debe tener 10 dígitos.",true);const {error}=await db.from("profesionales").update({nombre:nombre.trim(),especialidad:especialidad?.trim()||null,whatsapp:whatsapp||null}).eq("id",id);if(error)return msg(error.message,true);msg("Profesional actualizado.");await cargarProfesionales();}
 async function toggleProfesional(id,activo){const {error}=await db.from("profesionales").update({activo:!activo}).eq("id",id);if(error)return msg(error.message,true);msg(activo?"Profesional desactivado.":"Profesional activado.");await Promise.all([cargarProfesionales(),llenarProfesionalesHorario()]);}
 async function eliminarProfesional(id){if(!confirm("¿Eliminar este profesional?"))return;const {error}=await db.from("profesionales").delete().eq("id",id);if(error)return msg(error.message,true);msg("Profesional eliminado.");await cargarProfesionales();}
 async function editarServicio(id){const {data:s,error:e}=await db.from("servicios").select("nombre,descripcion,duracion_minutos,precio,modalidad").eq("id",id).single();if(e)return msg(e.message,true);const nombre=prompt("Nombre:",s.nombre||"");if(!nombre?.trim())return;const descripcion=prompt("Descripción:",s.descripcion||"");const dur=Number(prompt("Duración en minutos:",s.duracion_minutos||60));if(!dur)return;const precio=prompt("Precio:",s.precio??"");const modalidad=prompt("Modalidad: presencial o en_linea",s.modalidad||"presencial");if(!["presencial","en_linea"].includes(modalidad))return msg("Modalidad no válida.",true);const {error}=await db.from("servicios").update({nombre:nombre.trim(),descripcion:descripcion?.trim()||null,duracion_minutos:dur,precio:precio===""?null:Number(precio),modalidad}).eq("id",id);if(error)return msg(error.message,true);msg("Servicio actualizado.");await cargarServicios();}
@@ -1394,3 +1399,5 @@ init();
 
 
 document.getElementById("negocioWhatsapp")?.addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0,10); });
+
+$("profWhatsapp")?.addEventListener("input",()=>{$("profWhatsapp").value=$("profWhatsapp").value.replace(/\D/g,"").slice(0,10);});

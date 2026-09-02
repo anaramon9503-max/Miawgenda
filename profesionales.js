@@ -18,6 +18,7 @@ const btnCerrar = $("btnCerrar");
 const formularioProfesional = $("formularioProfesional");
 const profesionalNombre = $("profesionalNombre");
 const profesionalEspecialidad = $("profesionalEspecialidad");
+const profesionalWhatsapp = $("profesionalWhatsapp");
 const tituloFormularioProfesional = $("tituloFormularioProfesional");
 const btnCancelarEdicion = $("btnCancelarEdicion");
 const listaProfesionales = $("listaProfesionales");
@@ -156,6 +157,7 @@ async function cargarProfesionales() {
         usuario_id,
         nombre,
         especialidad,
+        whatsapp,
         activo
       `)
       .eq("negocio_id", negocioActualId)
@@ -206,10 +208,10 @@ function renderProfesionales() {
           </div>
 
           <div class="servicio-descripcion">
-            ${escapar(
-              profesional.especialidad ||
-              "Sin especialidad"
-            )}
+            ${escapar(profesional.especialidad || "Sin especialidad")}
+          </div>
+          <div class="servicio-descripcion">
+            📱 ${escapar(profesional.whatsapp || "Sin WhatsApp")}
           </div>
         </div>
 
@@ -269,6 +271,12 @@ async function guardarProfesional(evento) {
   const especialidad =
     profesionalEspecialidad.value.trim();
 
+  const whatsapp = (profesionalWhatsapp?.value || "").replace(/\D/g, "").slice(0, 10);
+  if (whatsapp && !/^\d{10}$/.test(whatsapp)) {
+    mostrarError("El WhatsApp debe tener exactamente 10 dígitos.");
+    return;
+  }
+
   if (!nombre) {
     mostrarError(
       "Escribe el nombre del profesional."
@@ -295,7 +303,8 @@ async function guardarProfesional(evento) {
           .update({
             nombre,
             especialidad:
-              especialidad || null
+              especialidad || null,
+            whatsapp: whatsapp || null
           })
           .eq(
             "id",
@@ -324,6 +333,7 @@ async function guardarProfesional(evento) {
             nombre,
             especialidad:
               especialidad || null,
+            whatsapp: whatsapp || null,
             activo:
               true
           });
@@ -371,6 +381,8 @@ function editarProfesional(id) {
   profesionalEspecialidad.value =
     profesional.especialidad || "";
 
+  if (profesionalWhatsapp) profesionalWhatsapp.value = profesional.whatsapp || "";
+
   tituloFormularioProfesional.textContent =
     "Editar profesional";
 
@@ -389,6 +401,7 @@ function cancelarEdicion() {
 
   profesionalNombre.value = "";
   profesionalEspecialidad.value = "";
+  if (profesionalWhatsapp) profesionalWhatsapp.value = "";
 
   tituloFormularioProfesional.textContent =
     "Agregar profesional";
@@ -698,3 +711,8 @@ window.abrirServiciosProfesional =
   abrirServiciosProfesional;
 
 iniciar();
+
+// WhatsApp: solo 10 dígitos
+profesionalWhatsapp?.addEventListener("input", () => {
+  profesionalWhatsapp.value = profesionalWhatsapp.value.replace(/\D/g, "").slice(0, 10);
+});

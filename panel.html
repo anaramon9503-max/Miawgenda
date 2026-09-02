@@ -436,18 +436,6 @@
 
 
 
-      <div id="configNegocio" class="form-cita-panel oculto">
-        <h3>🏪 Mi negocio</h3>
-        <p style="margin-top:-6px;color:#817788;font-size:13px">Estos datos se usan en tu agenda pública y en los mensajes de WhatsApp.</p>
-        <label>Nombre comercial</label><input id="cfgNombre" type="text">
-        <label>WhatsApp</label><input id="cfgWhatsapp" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="10 dígitos, ej. 6562702125">
-        <label>Dirección</label><input id="cfgDireccion" type="text" placeholder="Dirección del consultorio/local">
-        <label>URL del logo</label><input id="cfgLogo" type="url" placeholder="https://...">
-        <label>Color de marca</label><input id="cfgColor" type="color" value="#7b55da">
-        <label>Mensaje de confirmación</label><input id="cfgMensaje" type="text" placeholder="Ej. ¡Tu cita quedó registrada!">
-        <div class="form-botones"><button id="btnGuardarNegocio" type="button" style="background:#7b55da;color:white">Guardar datos</button></div>
-      </div>
-
       <!-- =========================================
            FORMULARIO NUEVA CITA / REAGENDAR
       ========================================== -->
@@ -633,6 +621,21 @@
         </div>
 
       </div>
+
+      <details id="configNegocio" class="form-cita-panel oculto" style="margin-top:24px">
+        <summary style="cursor:pointer;font-weight:800;font-size:16px">⚙️ Configuración del negocio</summary>
+        <h3>🏪 Mi negocio</h3>
+        <p style="margin-top:-6px;color:#817788;font-size:13px">Estos datos se usan en tu agenda pública y en los mensajes de WhatsApp.</p>
+        <label>Nombre comercial</label><input id="cfgNombre" type="text">
+        <label>WhatsApp</label><input id="cfgWhatsapp" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="10 dígitos, ej. 6562702125">
+        <label>Dirección</label><input id="cfgDireccion" type="text" placeholder="Dirección del consultorio/local">
+        <label>URL del logo</label><input id="cfgLogo" type="url" placeholder="https://...">
+        <label>Color de marca</label><input id="cfgColor" type="color" value="#7b55da">
+        <label>Mensaje de confirmación</label><input id="cfgMensaje" type="text" placeholder="Ej. ¡Tu cita quedó registrada!">
+        <div class="form-botones"><button id="btnGuardarNegocio" type="button" style="background:#7b55da;color:white">Guardar datos</button></div>
+      </details>
+
+
 
     </div>
 
