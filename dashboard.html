@@ -7,21 +7,14 @@
   <title>AR Agenda | Dashboard</title>
 
   <link rel="stylesheet" href="style.css">
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    *{
-      box-sizing:border-box;
-    }
-
-    body{
-      margin:0;
-      padding-bottom:105px;
-    }
+    *{box-sizing:border-box;}
+    body{margin:0;padding-bottom:105px;}
 
     .dashboard-bienvenida{
-      margin-bottom:20px;
+      margin-bottom:18px;
       padding:22px;
       background:#fff;
       border:1px solid #e8e1ec;
@@ -48,9 +41,9 @@
 
     .dashboard-grid{
       display:grid;
-      grid-template-columns:repeat(2, 1fr);
+      grid-template-columns:repeat(2,1fr);
       gap:12px;
-      margin:18px 0 24px;
+      margin:18px 0 22px;
     }
 
     .dashboard-card{
@@ -81,44 +74,48 @@
       color:#7d7284;
     }
 
-    .dashboard-accesos{
-      margin-top:14px;
-      display:grid;
-      gap:10px;
-    }
-
-    .dashboard-acceso{
-      display:flex;
-      align-items:center;
-      gap:14px;
-      width:100%;
-      text-decoration:none;
+    .proxima-cita{
+      margin-top:6px;
+      padding:18px;
       background:#fff;
-      border:1px solid #e6dfea;
-      border-radius:18px;
-      padding:16px;
-      color:#43384a;
+      border:1px solid #e8e1ec;
+      border-radius:20px;
     }
 
-    .dashboard-acceso .acceso-icono{
-      width:46px;
-      height:46px;
-      border-radius:14px;
-      display:grid;
-      place-items:center;
-      background:#f0e9ff;
-      font-size:22px;
+    .proxima-cita h3{
+      margin:0 0 12px;
+      color:#352d3d;
     }
 
-    .dashboard-acceso strong{
-      display:block;
-      font-size:15px;
-      margin-bottom:3px;
+    .proxima-cita-card{
+      padding:15px;
+      background:#faf8fb;
+      border:1px solid #ebe5ed;
+      border-radius:16px;
     }
 
-    .dashboard-acceso span{
-      font-size:12px;
-      color:#82778a;
+    .proxima-hora{
+      font-size:18px;
+      font-weight:800;
+      color:#493d52;
+      margin-bottom:8px;
+    }
+
+    .proxima-linea{
+      margin:4px 0;
+      font-size:13px;
+      color:#776c7e;
+    }
+
+    .estado-chip{
+      display:inline-block;
+      margin-top:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:700;
+      background:#eee4ff;
+      color:#5f36aa;
     }
 
     .dashboard-sesion{
@@ -150,34 +147,36 @@
     .nav-inferior{
       position:fixed;
       left:50%;
-      bottom:12px;
+      bottom:10px;
       transform:translateX(-50%);
-      width:min(calc(100% - 24px), 620px);
+      width:min(calc(100% - 20px),620px);
       display:grid;
-      grid-template-columns:repeat(5, 1fr);
       gap:4px;
       padding:8px;
       background:rgba(255,255,255,.97);
       border:1px solid #ddd6e2;
-      border-radius:25px;
+      border-radius:24px;
       box-shadow:0 10px 30px rgba(65,48,76,.12);
       z-index:999;
       backdrop-filter:blur(12px);
     }
 
+    .nav-admin{grid-template-columns:repeat(5,1fr);}
+    .nav-profesional{grid-template-columns:repeat(3,1fr);}
+
     .nav-item{
       min-width:0;
-      padding:9px 4px;
-      border-radius:17px;
+      padding:9px 3px;
+      border-radius:16px;
       text-decoration:none;
       text-align:center;
       color:#746a79;
-      font-size:11px;
+      font-size:10px;
     }
 
     .nav-item .nav-icono{
       display:block;
-      font-size:21px;
+      font-size:20px;
       margin-bottom:4px;
     }
 
@@ -186,27 +185,10 @@
       color:#fff;
     }
 
-    .oculto{
-      display:none !important;
-    }
+    .oculto{display:none!important;}
 
     @media(max-width:420px){
-      .dashboard-grid{
-        grid-template-columns:1fr 1fr;
-      }
-
-      .dashboard-card{
-        padding:15px;
-      }
-
-      .nav-inferior{
-        width:calc(100% - 18px);
-        bottom:8px;
-      }
-
-      .nav-item{
-        font-size:10px;
-      }
+      .dashboard-card{padding:15px;}
     }
   </style>
 </head>
@@ -217,19 +199,18 @@
 
   <div class="encabezado">
     <h1>AR Agenda</h1>
-    <p>Dashboard</p>
+    <p id="subtituloDashboard">Dashboard</p>
   </div>
 
   <div class="tarjeta">
 
     <div class="dashboard-bienvenida">
-      <p class="mini">Bienvenida 💜</p>
-      <h2 id="nombreNegocio">Cargando...</h2>
-      <p>Control general de tu agenda.</p>
+      <p class="mini" id="textoBienvenida">Bienvenida 💜</p>
+      <h2 id="nombrePrincipal">Cargando...</h2>
+      <p id="textoSecundario">Control general de tu agenda.</p>
     </div>
 
     <div class="dashboard-grid">
-
       <div class="dashboard-card">
         <div class="icono">📅</div>
         <div>
@@ -255,35 +236,35 @@
       </div>
 
       <div class="dashboard-card">
-        <div class="icono">👩‍⚕️</div>
+        <div class="icono" id="iconoCuartaTarjeta">👩‍⚕️</div>
         <div>
-          <div id="profesionalesActivos" class="numero">—</div>
-          <div class="texto">Profesionales activos</div>
+          <div id="cuartaTarjetaNumero" class="numero">—</div>
+          <div id="cuartaTarjetaTexto" class="texto">Profesionales activos</div>
         </div>
       </div>
-
     </div>
 
-<div class="dashboard-sesion">
+    <section id="seccionProximaCita" class="proxima-cita oculto">
+      <h3>Próxima cita</h3>
+
+      <div id="proximaCitaContenido" class="proxima-cita-card">
+        Cargando...
+      </div>
+    </section>
+
+    <div class="dashboard-sesion">
       Sesión: <strong id="correoUsuario"></strong>
 
-      <button
-        id="btnCerrar"
-        type="button"
-        class="btn-salir-dashboard"
-      >
+      <button id="btnCerrar" type="button" class="btn-salir-dashboard">
         Cerrar sesión
       </button>
     </div>
 
     <div id="mensaje" class="mensaje oculto"></div>
-
   </div>
-
 </div>
 
-<nav class="nav-inferior">
-
+<nav id="navAdmin" class="nav-inferior nav-admin oculto">
   <a href="dashboard.html" class="nav-item activo">
     <span class="nav-icono">🏠</span>
     Inicio
@@ -294,24 +275,40 @@
     Citas
   </a>
 
-  <a href="profesionales.html" class="nav-item" id="navProfesionales">
+  <a href="profesionales.html" class="nav-item">
     <span class="nav-icono">👩‍⚕️</span>
     Profes.
   </a>
 
-  <a href="servicios.html" class="nav-item" id="navServicios">
+  <a href="servicios.html" class="nav-item">
     <span class="nav-icono">🛍️</span>
     Servicios
   </a>
 
-  <a href="horarios.html" class="nav-item" id="navHorarios">
+  <a href="horarios.html" class="nav-item">
     <span class="nav-icono">🕐</span>
     Horarios
   </a>
-
 </nav>
 
-<script src="dashboard.js"></script>
+<nav id="navProfesional" class="nav-inferior nav-profesional oculto">
+  <a href="dashboard.html" class="nav-item activo">
+    <span class="nav-icono">🏠</span>
+    Inicio
+  </a>
+
+  <a href="panel.html" class="nav-item">
+    <span class="nav-icono">📅</span>
+    Mis citas
+  </a>
+
+  <a href="horarios.html" class="nav-item">
+    <span class="nav-icono">🕐</span>
+    Mi horario
+  </a>
+</nav>
+
+<script src="dashboard.js?v=2"></script>
 
 </body>
 </html>

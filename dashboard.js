@@ -15,7 +15,7 @@ let usuarioActual = null;
 let negocioActualId = null;
 let esAdmin = false;
 let esProfesional = false;
-let profesionalActualId = null;
+let profesionalActual = null;
 
 async function iniciarDashboard() {
   const { data, error } =
@@ -78,10 +78,15 @@ async function iniciarDashboard() {
     !!membresia.es_profesional;
 
   if (esProfesional) {
-    const { data: profesional } =
+    const { data: profesional, error: errorProfesional } =
       await db
         .from("profesionales")
-        .select("id")
+        .select(`
+          id,
+          nombre,
+          especialidad,
+          activo
+        `)
         .eq(
           "usuario_id",
           usuarioActual.id
@@ -96,38 +101,84 @@ async function iniciarDashboard() {
         )
         .maybeSingle();
 
-    profesionalActualId =
-      profesional?.id || null;
+    if (errorProfesional) {
+      console.error(
+        "Error profesional:",
+        errorProfesional
+      );
+    }
+
+    profesionalActual =
+      profesional || null;
   }
 
-  aplicarPermisos();
+  aplicarVistaPorRol();
 
   await Promise.all([
     cargarNegocio(),
     cargarResumen()
   ]);
+
+  if (
+    esProfesional &&
+    profesionalActual?.id
+  ) {
+    await cargarProximaCita();
+  }
 }
 
-function aplicarPermisos() {
-  if (!esAdmin) {
-    $("accesoProfesionales")
-      ?.classList.add("oculto");
+function aplicarVistaPorRol() {
+  if (esAdmin) {
+    $("navAdmin").classList.remove(
+      "oculto"
+    );
 
-    $("accesoServicios")
-      ?.classList.add("oculto");
+    $("textoBienvenida").textContent =
+      "Bienvenida 💜";
 
-    $("accesoHorarios")
-      ?.classList.add("oculto");
+    $("textoSecundario").textContent =
+      "Control general de tu agenda.";
 
-    $("navProfesionales")
-      ?.classList.add("oculto");
+    $("subtituloDashboard").textContent =
+      "Dashboard";
 
-    $("navServicios")
-      ?.classList.add("oculto");
+    $("iconoCuartaTarjeta").textContent =
+      "👩‍⚕️";
 
-    $("navHorarios")
-      ?.classList.add("oculto");
+    $("cuartaTarjetaTexto").textContent =
+      "Profesionales activos";
+
+    return;
   }
+
+  $("navProfesional").classList.remove(
+    "oculto"
+  );
+
+  $("textoBienvenida").textContent =
+    "Bienvenido 👋";
+
+  $("subtituloDashboard").textContent =
+    "Mi agenda";
+
+  $("nombrePrincipal").textContent =
+    profesionalActual?.nombre ||
+    "Profesional";
+
+  $("textoSecundario").textContent =
+    profesionalActual?.especialidad
+      ? profesionalActual.especialidad
+      : "Tu agenda profesional.";
+
+  $("iconoCuartaTarjeta").textContent =
+    "✅";
+
+  $("cuartaTarjetaTexto").textContent =
+    "Atendidas";
+
+  $("seccionProximaCita").classList.remove(
+    "oculto"
+  );
 }
 
 async function cargarNegocio() {
@@ -143,13 +194,19 @@ async function cargarNegocio() {
 
   if (error || !data) {
     console.error(error);
-    $("nombreNegocio").textContent =
-      "Mi negocio";
+
+    if (esAdmin) {
+      $("nombrePrincipal").textContent =
+        "Mi negocio";
+    }
+
     return;
   }
 
-  $("nombreNegocio").textContent =
-    data.nombre || "Mi negocio";
+  if (esAdmin) {
+    $("nombrePrincipal").textContent =
+      data.nombre || "Mi negocio";
+  }
 }
 
 async function cargarResumen() {
@@ -159,76 +216,136 @@ async function cargarResumen() {
   let consultaHoy =
     db
       .from("citas")
-      .select("id", { count: "exact", head: true })
+      .select("id", {
+        count: "exact",
+        head: true
+      })
       .eq(
         "negocio_id",
         negocioActualId
       )
-      .eq("fecha", hoy)
-      .neq("estado", "cancelada");
+      .eq(
+        "fecha",
+        hoy
+      )
+      .neq(
+        "estado",
+        "cancelada"
+      );
 
   let consultaPendientes =
     db
       .from("citas")
-      .select("id", { count: "exact", head: true })
+      .select("id", {
+        count: "exact",
+        head: true
+      })
       .eq(
         "negocio_id",
         negocioActualId
       )
-      .eq("estado", "pendiente")
-      .gte("fecha", hoy);
+      .eq(
+        "estado",
+        "pendiente"
+      )
+      .gte(
+        "fecha",
+        hoy
+      );
 
   let consultaConfirmadas =
     db
       .from("citas")
-      .select("id", { count: "exact", head: true })
+      .select("id", {
+        count: "exact",
+        head: true
+      })
       .eq(
         "negocio_id",
         negocioActualId
       )
-      .eq("estado", "confirmada")
-      .gte("fecha", hoy);
+      .eq(
+        "estado",
+        "confirmada"
+      )
+      .gte(
+        "fecha",
+        hoy
+      );
 
   if (
     !esAdmin &&
-    profesionalActualId
+    profesionalActual?.id
   ) {
     consultaHoy =
       consultaHoy.eq(
         "profesional_id",
-        profesionalActualId
+        profesionalActual.id
       );
 
     consultaPendientes =
       consultaPendientes.eq(
         "profesional_id",
-        profesionalActualId
+        profesionalActual.id
       );
 
     consultaConfirmadas =
       consultaConfirmadas.eq(
         "profesional_id",
-        profesionalActualId
+        profesionalActual.id
       );
+  }
+
+  let cuartaConsulta;
+
+  if (esAdmin) {
+    cuartaConsulta =
+      db
+        .from("profesionales")
+        .select("id", {
+          count: "exact",
+          head: true
+        })
+        .eq(
+          "negocio_id",
+          negocioActualId
+        )
+        .eq(
+          "activo",
+          true
+        );
+  } else {
+    cuartaConsulta =
+      db
+        .from("citas")
+        .select("id", {
+          count: "exact",
+          head: true
+        })
+        .eq(
+          "negocio_id",
+          negocioActualId
+        )
+        .eq(
+          "profesional_id",
+          profesionalActual?.id || ""
+        )
+        .eq(
+          "estado",
+          "atendida"
+        );
   }
 
   const [
     hoyResp,
     pendientesResp,
     confirmadasResp,
-    profesionalesResp
+    cuartaResp
   ] = await Promise.all([
     consultaHoy,
     consultaPendientes,
     consultaConfirmadas,
-    db
-      .from("profesionales")
-      .select("id", { count: "exact", head: true })
-      .eq(
-        "negocio_id",
-        negocioActualId
-      )
-      .eq("activo", true)
+    cuartaConsulta
   ]);
 
   $("citasHoy").textContent =
@@ -240,47 +357,217 @@ async function cargarResumen() {
   $("citasConfirmadas").textContent =
     confirmadasResp.count ?? 0;
 
-  $("profesionalesActivos").textContent =
-    profesionalesResp.count ?? 0;
-
-  const errores = [
-    hoyResp.error,
-    pendientesResp.error,
-    confirmadasResp.error,
-    profesionalesResp.error
-  ].filter(Boolean);
-
-  if (errores.length) {
-    console.error(
-      "Error cargando dashboard:",
-      errores
-    );
-  }
+  $("cuartaTarjetaNumero").textContent =
+    cuartaResp.count ?? 0;
 }
 
-function fechaLocalISO(fecha) {
+async function cargarProximaCita() {
+  const hoy =
+    fechaLocalISO(new Date());
+
+  const { data, error } =
+    await db
+      .from("citas")
+      .select(`
+        id,
+        fecha,
+        hora_inicio,
+        hora_fin,
+        paciente_nombre,
+        estado,
+        servicio_id
+      `)
+      .eq(
+        "negocio_id",
+        negocioActualId
+      )
+      .eq(
+        "profesional_id",
+        profesionalActual.id
+      )
+      .gte(
+        "fecha",
+        hoy
+      )
+      .in(
+        "estado",
+        [
+          "pendiente",
+          "confirmada"
+        ]
+      )
+      .order(
+        "fecha",
+        { ascending: true }
+      )
+      .order(
+        "hora_inicio",
+        { ascending: true }
+      )
+      .limit(1);
+
+  if (error) {
+    console.error(
+      "Error próxima cita:",
+      error
+    );
+
+    $("proximaCitaContenido").textContent =
+      "No fue posible cargar la próxima cita.";
+
+    return;
+  }
+
+  const cita =
+    data?.[0];
+
+  if (!cita) {
+    $("proximaCitaContenido").textContent =
+      "No tienes próximas citas.";
+
+    return;
+  }
+
+  let nombreServicio =
+    "Servicio";
+
+  if (cita.servicio_id) {
+    const { data: servicio } =
+      await db
+        .from("servicios")
+        .select("nombre")
+        .eq(
+          "id",
+          cita.servicio_id
+        )
+        .maybeSingle();
+
+    if (servicio?.nombre) {
+      nombreServicio =
+        servicio.nombre;
+    }
+  }
+
+  $("proximaCitaContenido").innerHTML = `
+    <div class="proxima-hora">
+      ${cortarHora(cita.hora_inicio)}
+      ${cita.hora_fin
+        ? `– ${cortarHora(cita.hora_fin)}`
+        : ""}
+    </div>
+
+    <div class="proxima-linea">
+      📅 ${formatearFecha(cita.fecha)}
+    </div>
+
+    <div class="proxima-linea">
+      Paciente: ${escapar(
+        cita.paciente_nombre ||
+        "Sin nombre"
+      )}
+    </div>
+
+    <div class="proxima-linea">
+      Servicio: ${escapar(
+        nombreServicio
+      )}
+    </div>
+
+    <span class="estado-chip">
+      ${textoEstado(cita.estado)}
+    </span>
+  `;
+}
+
+function textoEstado(
+  estado
+) {
+  const textos = {
+    pendiente: "Pendiente",
+    confirmada: "Confirmada",
+    atendida: "Atendida",
+    cancelada: "Cancelada",
+    no_asistio: "No asistió"
+  };
+
+  return textos[estado] || estado;
+}
+
+function cortarHora(
+  hora
+) {
+  if (!hora) return "";
+  return String(hora).slice(0,5);
+}
+
+function formatearFecha(
+  fechaISO
+) {
+  if (!fechaISO) return "";
+
+  const [
+    año,
+    mes,
+    dia
+  ] = fechaISO
+    .split("-")
+    .map(Number);
+
+  return new Date(
+    año,
+    mes - 1,
+    dia
+  ).toLocaleDateString(
+    "es-MX",
+    {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    }
+  );
+}
+
+function fechaLocalISO(
+  fecha
+) {
   const año =
     fecha.getFullYear();
 
   const mes =
     String(
       fecha.getMonth() + 1
-    ).padStart(2, "0");
+    ).padStart(2,"0");
 
   const dia =
     String(
       fecha.getDate()
-    ).padStart(2, "0");
+    ).padStart(2,"0");
 
   return `${año}-${mes}-${dia}`;
 }
 
-function mostrarError(texto) {
-  const mensaje = $("mensaje");
+function escapar(
+  texto = ""
+) {
+  return String(texto)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function mostrarError(
+  texto
+) {
+  const mensaje =
+    $("mensaje");
 
   if (!mensaje) return;
 
-  mensaje.textContent = texto;
+  mensaje.textContent =
+    texto;
+
   mensaje.className =
     "mensaje error";
 }
