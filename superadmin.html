@@ -396,6 +396,20 @@
       text-align:left;
     }
 
+    /* CITAS MEJORADAS */
+    .sa-citas-resumen{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 14px}
+    .sa-stat{background:#fff;border:1px solid #ddd8e2;border-radius:16px;padding:13px;box-shadow:0 5px 16px rgba(0,0,0,.03)}
+    .sa-stat strong{display:block;font-size:21px;color:#5f43a2}.sa-stat span{font-size:11px;color:#847b8b}
+    .sa-filtros-citas{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr auto;gap:9px;align-items:end;background:#fff;border:1px solid #ddd8e2;border-radius:18px;padding:14px;margin-bottom:14px}
+    .sa-filtros-citas label{margin:0 0 5px;font-size:11px}.sa-filtros-citas input,.sa-filtros-citas select{margin:0}
+    .sa-cita-paciente{font-weight:750;color:#342b3d}.sa-cita-sub{font-size:11px;color:#8a8191;margin-top:3px}
+    .sa-estado{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800;background:#f0edf4;color:#62586d;text-transform:capitalize}
+    .sa-estado.confirmada{background:#e8f6ee;color:#267a4a}.sa-estado.atendida{background:#e9f2ff;color:#3267a8}.sa-estado.cancelada{background:#fdeced;color:#a53b45}.sa-estado.no_asistio{background:#fff2df;color:#9a651f}.sa-estado.pendiente{background:#f3edff;color:#6848b1}
+    .sa-citas-cards{display:none;gap:10px}.sa-cita-card{background:#fff;border:1px solid #ddd8e2;border-radius:18px;padding:15px;box-shadow:0 5px 16px rgba(0,0,0,.03)}
+    .sa-cita-card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.sa-cita-fecha{font-weight:800;color:#5f43a2}.sa-cita-hora{font-size:18px;font-weight:850;color:#302838}
+    .sa-cita-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.sa-cita-dato{background:#faf8fc;border-radius:12px;padding:9px}.sa-cita-dato small{display:block;color:#918797;font-size:10px;margin-bottom:3px}.sa-cita-dato div{font-size:12px;font-weight:650;overflow-wrap:anywhere}
+    .sa-btn-sec{border:1px solid #ddd6e4!important;background:#fff!important}
+
     /* BOTTOM NAV */
 
     .sa-bottom-nav{
@@ -481,6 +495,11 @@
       .sa-bottom-nav{
         display:flex;
       }
+      .sa-citas-resumen{grid-template-columns:repeat(2,1fr)}
+      .sa-filtros-citas{grid-template-columns:1fr 1fr}
+      .sa-filtros-citas .sa-busqueda{grid-column:1/-1}
+      #tablaCitasWrap{display:none}
+      .sa-citas-cards{display:grid}
     }
 
     @media(min-width:651px){
@@ -1039,22 +1058,17 @@
     </div>
 
 
-    <div class="sa-selector">
+    <div id="citasResumen" class="sa-citas-resumen"></div>
 
-      <label>Filtrar negocio</label>
-
-      <select id="citasNegocio">
-
-        <option value="">
-          Todos
-        </option>
-
-      </select>
-
+    <div class="sa-filtros-citas">
+      <div class="sa-busqueda"><label>Buscar paciente</label><input id="citasBuscar" placeholder="Nombre, teléfono o correo"></div>
+      <div><label>Negocio</label><select id="citasNegocio"><option value="">Todos</option></select></div>
+      <div><label>Estado</label><select id="citasEstado"><option value="">Todos</option><option value="pendiente">Pendiente</option><option value="confirmada">Confirmada</option><option value="atendida">Atendida</option><option value="cancelada">Cancelada</option><option value="no_asistio">No asistió</option></select></div>
+      <div><label>Fecha</label><input id="citasFecha" type="date"></div>
+      <button type="button" id="citasLimpiar" class="sa-mini-btn">Limpiar</button>
     </div>
 
-
-    <div class="sa-table">
+    <div id="tablaCitasWrap" class="sa-table">
 
       <table>
 
@@ -1078,6 +1092,7 @@
       </table>
 
     </div>
+    <div id="citasCardsSA" class="sa-citas-cards"></div>
 
   </section>
 

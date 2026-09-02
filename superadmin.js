@@ -94,6 +94,10 @@ function conectarEventos() {
 
   $("horProfesional").onchange = llenarServiciosHorario;
   $("citasNegocio").onchange = cargarCitas;
+  if ($("citasEstado")) $("citasEstado").onchange = cargarCitas;
+  if ($("citasFecha")) $("citasFecha").onchange = cargarCitas;
+  if ($("citasBuscar")) $("citasBuscar").oninput = () => { clearTimeout(window.__citasTimer); window.__citasTimer=setTimeout(cargarCitas,220); };
+  if ($("citasLimpiar")) $("citasLimpiar").onclick = () => { $("citasBuscar").value=""; $("citasEstado").value=""; $("citasFecha").value=""; $("citasNegocio").value=""; cargarCitas(); };
 }
 
 
@@ -104,7 +108,7 @@ function conectarEventos() {
 async function cargarNegocios() {
   const { data, error } = await db
     .from("negocios")
-    .select("id,nombre")
+    .select("id,nombre,activo")
     .order("nombre");
 
   if (error) {
@@ -118,9 +122,10 @@ async function cargarNegocios() {
     ? negocios.map(n => `
         <div class="sa-item">
           <h4>${AR.escape(n.nombre)}</h4>
-          <span class="sa-badge">${n.id}</span>
+          <span class="sa-badge">${n.activo ? "Activo" : "Inactivo"}</span>
           <div class="sa-actions">
             <button type="button" onclick="editarNegocio('${n.id}')">✏️ Editar</button>
+            <button type="button" onclick="toggleNegocio('${n.id}', ${!!n.activo})">${n.activo ? "⏸️ Desactivar" : "▶️ Activar"}</button>
             <button type="button" onclick="eliminarNegocio('${n.id}')">🗑️ Eliminar</button>
           </div>
         </div>
@@ -392,6 +397,7 @@ async function cargarProfesionales() {
         </div>
         <div class="sa-actions">
           <button type="button" onclick="editarProfesional('${p.id}')">✏️ Editar</button>
+          <button type="button" onclick="toggleProfesional('${p.id}', ${!!p.activo})">${p.activo ? "⏸️ Desactivar" : "▶️ Activar"}</button>
           <button type="button" onclick="eliminarProfesional('${p.id}')">🗑️ Eliminar</button>
         </div>
       </div>
@@ -532,6 +538,7 @@ async function cargarServicios() {
         </div>
         <div class="sa-actions">
           <button type="button" onclick="editarServicio('${s.id}')">✏️ Editar</button>
+          <button type="button" onclick="toggleServicio('${s.id}', ${!!s.activo})">${s.activo ? "⏸️ Desactivar" : "▶️ Activar"}</button>
           <button type="button" onclick="eliminarServicio('${s.id}')">🗑️ Eliminar</button>
         </div>
       </div>
@@ -924,10 +931,6 @@ async function cargarHorarios() {
       "profesional_id",
       idsProfesionales
     )
-    .eq(
-      "activo",
-      true
-    )
     .order(
       "dia_semana"
     )
@@ -1090,7 +1093,8 @@ async function cargarHorarios() {
             h.id,
 
           nombre:
-            nombreServicio
+            nombreServicio,
+          activo: !!h.activo
 
         });
     }
@@ -1209,8 +1213,10 @@ async function cargarHorarios() {
                     )
                   }
 
-                  ${AR.escape(servicio.nombre)}
-                  <button type="button" title="Eliminar horario" onclick="eliminarHorarioSA('${servicio.horario_id}')" style="border:0;background:transparent;cursor:pointer;padding:0 0 0 3px;color:inherit;">×</button>
+                  ${AR.escape(servicio.nombre)} ${servicio.activo ? "" : "(inactivo)"}
+                  <button type="button" title="Editar horario" onclick="editarHorarioSA('${servicio.horario_id}')" style="border:0;background:transparent;cursor:pointer;padding:0 0 0 3px;color:inherit;">✏️</button>
+                  <button type="button" title="${servicio.activo ? "Desactivar" : "Activar"}" onclick="toggleHorario('${servicio.horario_id}', ${!!servicio.activo})" style="border:0;background:transparent;cursor:pointer;padding:0;color:inherit;">${servicio.activo ? "⏸" : "▶"}</button>
+                  <button type="button" title="Eliminar horario" onclick="eliminarHorarioSA('${servicio.horario_id}')" style="border:0;background:transparent;cursor:pointer;padding:0;color:inherit;">×</button>
                 </span>
 
               `)
@@ -1276,284 +1282,80 @@ async function cargarHorarios() {
 ========================================================= */
 
 async function cargarCitas() {
+  const filtro = $("citasNegocio")?.value || "";
+  const estadoFiltro = $("citasEstado")?.value || "";
+  const fechaFiltro = $("citasFecha")?.value || "";
+  const buscar = ($("citasBuscar")?.value || "").trim().toLowerCase();
 
-  const filtro =
-    $("citasNegocio")?.value ||
-    "";
+  let q = db.from("citas").select(`
+    id,negocio_id,profesional_id,servicio_id,paciente_nombre,paciente_telefono,paciente_email,
+    fecha,hora_inicio,hora_fin,estado
+  `).order("fecha",{ascending:false}).order("hora_inicio",{ascending:true}).limit(500);
+  if (filtro) q=q.eq("negocio_id",filtro);
+  if (estadoFiltro) q=q.eq("estado",estadoFiltro);
+  if (fechaFiltro) q=q.eq("fecha",fechaFiltro);
 
-  let q =
-    db
-      .from("citas")
-      .select(`
-        id,
-        negocio_id,
-        profesional_id,
-        servicio_id,
-        paciente_nombre,
-        fecha,
-        hora_inicio,
-        estado
-      `)
-      .order(
-        "fecha",
-        {
-          ascending:
-            false
-        }
-      )
-      .order(
-        "hora_inicio",
-        {
-          ascending:
-            true
-        }
-      )
-      .limit(300);
-
-  if (filtro) {
-
-    q =
-      q.eq(
-        "negocio_id",
-        filtro
-      );
-  }
-
-  const {
-    data,
-    error
-  } =
-    await q;
-
-  if (error) {
-
-    return msg(
-      error.message,
-      true
-    );
-  }
-
-  const [
-
-    {
-      data: ps,
-      error: psError
-    },
-
-    {
-      data: ss,
-      error: ssError
-    }
-
-  ] = await Promise.all([
-
-    db
-      .from(
-        "profesionales"
-      )
-      .select(
-        "id,nombre"
-      ),
-
-    db
-      .from(
-        "servicios"
-      )
-      .select(
-        "id,nombre"
-      )
+  const {data,error}=await q;
+  if(error) return msg(error.message,true);
+  const [{data:ps,error:psError},{data:ss,error:ssError}]=await Promise.all([
+    db.from("profesionales").select("id,nombre"), db.from("servicios").select("id,nombre")
   ]);
+  if(psError)return msg(psError.message,true); if(ssError)return msg(ssError.message,true);
+  const nm=Object.fromEntries(negocios.map(x=>[x.id,x.nombre]));
+  const pm=Object.fromEntries((ps||[]).map(x=>[x.id,x.nombre]));
+  const sm=Object.fromEntries((ss||[]).map(x=>[x.id,x.nombre]));
+  const citas=(data||[]).filter(c=>!buscar || [c.paciente_nombre,c.paciente_telefono,c.paciente_email,nm[c.negocio_id],pm[c.profesional_id],sm[c.servicio_id]].some(v=>String(v||"").toLowerCase().includes(buscar)));
 
-  if (psError) {
+  const total=citas.length, pendientes=citas.filter(c=>c.estado==="pendiente").length, confirmadas=citas.filter(c=>c.estado==="confirmada").length, atendidas=citas.filter(c=>c.estado==="atendida").length;
+  if($("citasResumen")) $("citasResumen").innerHTML=`<div class="sa-stat"><strong>${total}</strong><span>Citas mostradas</span></div><div class="sa-stat"><strong>${pendientes}</strong><span>Pendientes</span></div><div class="sa-stat"><strong>${confirmadas}</strong><span>Confirmadas</span></div><div class="sa-stat"><strong>${atendidas}</strong><span>Atendidas</span></div>`;
 
-    return msg(
-      psError.message,
-      true
-    );
-  }
+  const estadoTxt=e=>({no_asistio:"No asistió"}[e]||e||"Pendiente");
+  const fechaBonita=f=>{if(!f)return ""; const [y,m,d]=f.split("-"); return `${d}/${m}/${y}`;};
+  const acciones=c=>`<div class="sa-actions"><button type="button" onclick="editarCitaSA('${c.id}')">✏️ Editar</button><button type="button" onclick="eliminarCitaSA('${c.id}')">🗑️ Eliminar</button></div>`;
 
-  if (ssError) {
+  $("tablaCitasSA").innerHTML=citas.map(c=>`<tr>
+    <td><strong>${fechaBonita(c.fecha)}</strong></td><td>${String(c.hora_inicio||"").slice(0,5)}${c.hora_fin?`<div class="sa-cita-sub">a ${String(c.hora_fin).slice(0,5)}</div>`:""}</td>
+    <td>${AR.escape(nm[c.negocio_id]||"")}</td><td><div class="sa-cita-paciente">${AR.escape(c.paciente_nombre||"")}</div><div class="sa-cita-sub">${AR.escape(c.paciente_telefono||c.paciente_email||"")}</div></td>
+    <td>${AR.escape(sm[c.servicio_id]||"")}</td><td>${AR.escape(pm[c.profesional_id]||"")}</td><td><span class="sa-estado ${AR.escape(c.estado||"pendiente")}">${AR.escape(estadoTxt(c.estado))}</span></td><td>${acciones(c)}</td></tr>`).join("")||'<tr><td colspan="8">Sin citas con estos filtros.</td></tr>';
 
-    return msg(
-      ssError.message,
-      true
-    );
-  }
-
-  const nm =
-    Object.fromEntries(
-
-      negocios.map(
-        x => [
-          x.id,
-          x.nombre
-        ]
-      )
-    );
-
-  const pm =
-    Object.fromEntries(
-
-      (ps || []).map(
-        x => [
-          x.id,
-          x.nombre
-        ]
-      )
-    );
-
-  const sm =
-    Object.fromEntries(
-
-      (ss || []).map(
-        x => [
-          x.id,
-          x.nombre
-        ]
-      )
-    );
-
-  $("tablaCitasSA").innerHTML =
-
-    (data || []).map(c => `
-
-      <tr>
-
-        <td>
-          ${c.fecha}
-        </td>
-
-        <td>
-          ${
-            String(
-              c.hora_inicio ||
-              ""
-            ).slice(
-              0,
-              5
-            )
-          }
-        </td>
-
-        <td>
-          ${
-            AR.escape(
-              nm[
-                c.negocio_id
-              ] ||
-              ""
-            )
-          }
-        </td>
-
-        <td>
-          ${
-            AR.escape(
-              c.paciente_nombre ||
-              ""
-            )
-          }
-        </td>
-
-        <td>
-          ${
-            AR.escape(
-              sm[
-                c.servicio_id
-              ] ||
-              ""
-            )
-          }
-        </td>
-
-        <td>
-          ${
-            AR.escape(
-              pm[
-                c.profesional_id
-              ] ||
-              ""
-            )
-          }
-        </td>
-
-        <td>${AR.escape(c.estado || "")}</td>
-        <td>
-          <div class="sa-actions">
-            <button type="button" onclick="editarCitaSA('${c.id}')">✏️ Editar</button>
-            <button type="button" onclick="eliminarCitaSA('${c.id}')">🗑️ Eliminar</button>
-          </div>
-        </td>
-      </tr>
-
-    `).join("")
-
-    ||
-
-    '<tr><td colspan="8">Sin citas.</td></tr>';
+  if($("citasCardsSA")) $("citasCardsSA").innerHTML=citas.map(c=>`<div class="sa-cita-card"><div class="sa-cita-card-top"><div><div class="sa-cita-fecha">${fechaBonita(c.fecha)}</div><div class="sa-cita-hora">${String(c.hora_inicio||"").slice(0,5)}</div></div><span class="sa-estado ${AR.escape(c.estado||"pendiente")}">${AR.escape(estadoTxt(c.estado))}</span></div><div class="sa-cita-paciente" style="margin-top:10px;font-size:16px">${AR.escape(c.paciente_nombre||"")}</div><div class="sa-cita-sub">${AR.escape(c.paciente_telefono||"")}${c.paciente_email?` · ${AR.escape(c.paciente_email)}`:""}</div><div class="sa-cita-grid"><div class="sa-cita-dato"><small>Negocio</small><div>${AR.escape(nm[c.negocio_id]||"")}</div></div><div class="sa-cita-dato"><small>Profesional</small><div>${AR.escape(pm[c.profesional_id]||"")}</div></div><div class="sa-cita-dato"><small>Servicio</small><div>${AR.escape(sm[c.servicio_id]||"")}</div></div><div class="sa-cita-dato"><small>Horario</small><div>${String(c.hora_inicio||"").slice(0,5)}${c.hora_fin?` - ${String(c.hora_fin).slice(0,5)}`:""}</div></div></div>${acciones(c)}</div>`).join("")||'<div class="sin-resultados">Sin citas con estos filtros.</div>';
 }
-
 
 
 /* =========================================================
    CRUD SÚPER ADMIN
 ========================================================= */
 async function editarNegocio(id) {
-  const actual = negocios.find(n => n.id === id);
-  const nombre = prompt("Nombre del negocio:", actual?.nombre || "");
-  if (!nombre?.trim()) return;
-  const {error}=await db.from("negocios").update({nombre:nombre.trim()}).eq("id",id);
-  if(error) return msg(error.message,true); msg("Negocio actualizado."); await cargarNegocios();
+  const actual=negocios.find(n=>n.id===id); const nombre=prompt("Nombre del negocio:",actual?.nombre||""); if(!nombre?.trim())return;
+  const {error}=await db.from("negocios").update({nombre:nombre.trim()}).eq("id",id); if(error)return msg(error.message,true); msg("Negocio actualizado."); await cargarNegocios(); await cargarUsuarios();
 }
-async function eliminarNegocio(id) {
-  if(!confirm("¿Eliminar este negocio? También puede afectar sus datos relacionados.")) return;
-  const {error}=await db.from("negocios").delete().eq("id",id);
-  if(error) return msg("No se pudo eliminar: "+error.message,true); msg("Negocio eliminado."); await cargarNegocios();
-}
-async function editarProfesional(id) {
-  const {data:p,error:e}=await db.from("profesionales").select("nombre,especialidad,activo").eq("id",id).single(); if(e)return msg(e.message,true);
-  const nombre=prompt("Nombre:",p.nombre||""); if(!nombre?.trim())return;
-  const especialidad=prompt("Especialidad:",p.especialidad||"");
-  const {error}=await db.from("profesionales").update({nombre:nombre.trim(),especialidad:especialidad?.trim()||null}).eq("id",id);
-  if(error)return msg(error.message,true); msg("Profesional actualizado."); await cargarProfesionales();
-}
-async function eliminarProfesional(id) {
-  if(!confirm("¿Eliminar este profesional? Si tiene citas relacionadas, Supabase puede impedir el borrado; en ese caso desactívalo desde Editar."))return;
-  const {error}=await db.from("profesionales").delete().eq("id",id); if(error)return msg(error.message,true); msg("Profesional eliminado."); await cargarProfesionales();
-}
-async function editarServicio(id) {
-  const {data:s,error:e}=await db.from("servicios").select("nombre,descripcion,duracion_minutos,precio").eq("id",id).single(); if(e)return msg(e.message,true);
-  const nombre=prompt("Nombre:",s.nombre||""); if(!nombre?.trim())return;
-  const dur=Number(prompt("Duración en minutos:",s.duracion_minutos||60)); if(!dur)return;
-  const precio=prompt("Precio:",s.precio??"");
-  const {error}=await db.from("servicios").update({nombre:nombre.trim(),duracion_minutos:dur,precio:precio===""?null:Number(precio)}).eq("id",id);
-  if(error)return msg(error.message,true); msg("Servicio actualizado."); await cargarServicios();
-}
-async function eliminarServicio(id) { if(!confirm("¿Eliminar este servicio?"))return; const {error}=await db.from("servicios").delete().eq("id",id); if(error)return msg(error.message,true); msg("Servicio eliminado."); await cargarServicios(); }
-async function editarCitaSA(id) {
-  const {data:c,error:e}=await db.from("citas").select("paciente_nombre,fecha,hora_inicio,estado").eq("id",id).single(); if(e)return msg(e.message,true);
-  const paciente=prompt("Paciente:",c.paciente_nombre||""); if(!paciente?.trim())return;
-  const fecha=prompt("Fecha (AAAA-MM-DD):",c.fecha||""); if(!fecha)return;
-  const hora=prompt("Hora (HH:MM):",String(c.hora_inicio||"").slice(0,5)); if(!hora)return;
-  const estado=prompt("Estado: pendiente, confirmada, atendida, cancelada o no_asistio",c.estado||"pendiente");
-  const {error}=await db.from("citas").update({paciente_nombre:paciente.trim(),fecha,hora_inicio:hora+":00",estado}).eq("id",id);
-  if(error)return msg(error.message,true); msg("Cita actualizada."); await cargarCitas();
-}
-async function eliminarCitaSA(id) { if(!confirm("¿Eliminar definitivamente esta cita?"))return; const {error}=await db.from("citas").delete().eq("id",id); if(error)return msg(error.message,true); msg("Cita eliminada."); await cargarCitas(); }
-async function eliminarHorarioSA(id) { if(!confirm("¿Eliminar este horario?"))return; const {error}=await db.from("horarios").delete().eq("id",id); if(error)return msg(error.message,true); msg("Horario eliminado."); await cargarHorarios(); }
+async function toggleNegocio(id,activo){const {error}=await db.from("negocios").update({activo:!activo}).eq("id",id);if(error)return msg(error.message,true);msg(activo?"Negocio desactivado.":"Negocio activado.");await cargarNegocios();}
+async function eliminarNegocio(id){if(!confirm("¿Eliminar este negocio? También puede afectar sus datos relacionados."))return;const {error}=await db.from("negocios").delete().eq("id",id);if(error)return msg("No se pudo eliminar: "+error.message,true);msg("Negocio eliminado.");await cargarNegocios();}
+async function editarProfesional(id){const {data:p,error:e}=await db.from("profesionales").select("nombre,especialidad").eq("id",id).single();if(e)return msg(e.message,true);const nombre=prompt("Nombre:",p.nombre||"");if(!nombre?.trim())return;const especialidad=prompt("Especialidad:",p.especialidad||"");const {error}=await db.from("profesionales").update({nombre:nombre.trim(),especialidad:especialidad?.trim()||null}).eq("id",id);if(error)return msg(error.message,true);msg("Profesional actualizado.");await cargarProfesionales();}
+async function toggleProfesional(id,activo){const {error}=await db.from("profesionales").update({activo:!activo}).eq("id",id);if(error)return msg(error.message,true);msg(activo?"Profesional desactivado.":"Profesional activado.");await Promise.all([cargarProfesionales(),llenarProfesionalesHorario()]);}
+async function eliminarProfesional(id){if(!confirm("¿Eliminar este profesional?"))return;const {error}=await db.from("profesionales").delete().eq("id",id);if(error)return msg(error.message,true);msg("Profesional eliminado.");await cargarProfesionales();}
+async function editarServicio(id){const {data:s,error:e}=await db.from("servicios").select("nombre,descripcion,duracion_minutos,precio").eq("id",id).single();if(e)return msg(e.message,true);const nombre=prompt("Nombre:",s.nombre||"");if(!nombre?.trim())return;const descripcion=prompt("Descripción:",s.descripcion||"");const dur=Number(prompt("Duración en minutos:",s.duracion_minutos||60));if(!dur)return;const precio=prompt("Precio:",s.precio??"");const {error}=await db.from("servicios").update({nombre:nombre.trim(),descripcion:descripcion?.trim()||null,duracion_minutos:dur,precio:precio===""?null:Number(precio)}).eq("id",id);if(error)return msg(error.message,true);msg("Servicio actualizado.");await cargarServicios();}
+async function toggleServicio(id,activo){const {error}=await db.from("servicios").update({activo:!activo}).eq("id",id);if(error)return msg(error.message,true);msg(activo?"Servicio desactivado.":"Servicio activado.");await Promise.all([cargarServicios(),llenarServiciosHorario()]);}
+async function eliminarServicio(id){if(!confirm("¿Eliminar este servicio?"))return;const {error}=await db.from("servicios").delete().eq("id",id);if(error)return msg(error.message,true);msg("Servicio eliminado.");await cargarServicios();}
+async function editarHorarioSA(id){const {data:h,error:e}=await db.from("horarios").select("dia_semana,hora_inicio,hora_slot,servicio_id").eq("id",id).single();if(e)return msg(e.message,true);const dia=Number(prompt("Día (1=Lunes ... 7=Domingo):",h.dia_semana));if(!(dia>=1&&dia<=7))return msg("Día no válido.",true);const hora=prompt("Hora (HH:MM):",String(h.hora_slot||h.hora_inicio||"").slice(0,5));if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(hora||""))return msg("Hora no válida.",true);const {data:sv,error:se}=await db.from("servicios").select("duracion_minutos").eq("id",h.servicio_id).single();if(se)return msg(se.message,true);const {error}=await db.from("horarios").update({dia_semana:dia,hora_slot:hora+":00",hora_inicio:hora+":00",hora_fin:sumarMinutos(hora,Number(sv?.duracion_minutos||60))}).eq("id",id);if(error)return msg(error.message,true);msg("Horario actualizado.");await cargarHorarios();}
+async function toggleHorario(id,activo){const {error}=await db.from("horarios").update({activo:!activo}).eq("id",id);if(error)return msg(error.message,true);msg(activo?"Horario desactivado.":"Horario activado.");await cargarHorarios();}
+async function editarCitaSA(id){const {data:c,error:e}=await db.from("citas").select("paciente_nombre,paciente_telefono,paciente_email,fecha,hora_inicio,hora_fin,estado,servicio_id").eq("id",id).single();if(e)return msg(e.message,true);const paciente=prompt("Paciente:",c.paciente_nombre||"");if(!paciente?.trim())return;const telefono=prompt("Teléfono:",c.paciente_telefono||"");const email=prompt("Correo:",c.paciente_email||"");const fecha=prompt("Fecha (AAAA-MM-DD):",c.fecha||"");if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(fecha||""))return msg("Fecha no válida.",true);const hora=prompt("Hora (HH:MM):",String(c.hora_inicio||"").slice(0,5));if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(hora||""))return msg("Hora no válida.",true);const estado=prompt("Estado: pendiente, confirmada, atendida, cancelada o no_asistio",c.estado||"pendiente");if(!["pendiente","confirmada","atendida","cancelada","no_asistio"].includes(estado))return msg("Estado no válido.",true);const {data:sv}=await db.from("servicios").select("duracion_minutos").eq("id",c.servicio_id).maybeSingle();const {error}=await db.from("citas").update({paciente_nombre:paciente.trim(),paciente_telefono:telefono?.trim()||null,paciente_email:email?.trim()||null,fecha,hora_inicio:hora+":00",hora_fin:sumarMinutos(hora,Number(sv?.duracion_minutos||60)),estado}).eq("id",id);if(error)return msg(error.message,true);msg("Cita actualizada.");await cargarCitas();}
+async function eliminarCitaSA(id){if(!confirm("¿Eliminar definitivamente esta cita?"))return;const {error}=await db.from("citas").delete().eq("id",id);if(error)return msg(error.message,true);msg("Cita eliminada.");await cargarCitas();}
+async function eliminarHorarioSA(id){if(!confirm("¿Eliminar este horario?"))return;const {error}=await db.from("horarios").delete().eq("id",id);if(error)return msg(error.message,true);msg("Horario eliminado.");await cargarHorarios();}
 
 async function cargarUsuarios() {
   const cont=$("listaUsuariosSA"); if(!cont)return;
   const {data:{session}}=await db.auth.getSession(); if(!session)return;
   try { const r=await fetch("/api/manage-users",{headers:{Authorization:`Bearer ${session.access_token}`}}); const out=await r.json(); if(!r.ok)throw new Error(out.error||"No se pudieron cargar usuarios");
     const nm=Object.fromEntries(negocios.map(n=>[n.id,n.nombre]));
-    cont.innerHTML=(out.usuarios||[]).map(u=>`<div class="sa-item"><h4>${AR.escape(u.email||"Usuario")}</h4><div class="sa-muted">${AR.escape(nm[u.negocio_id]||"Negocio")} · ${u.es_admin?"Administrador":u.es_profesional?"Profesional":"Sin rol"} · ${u.activo?"Activo":"Inactivo"}</div><div class="sa-actions"><button type="button" onclick="editarUsuarioSA('${u.usuario_id}','${u.negocio_id}','${u.es_admin?"admin":"profesional"}','${AR.escape(u.email||"")}')">✏️ Editar</button><button type="button" onclick="eliminarUsuarioSA('${u.usuario_id}')">🗑️ Eliminar</button></div></div>`).join("")||'<div class="sin-resultados">Sin usuarios.</div>';
+    cont.innerHTML=(out.usuarios||[]).map(u=>`<div class="sa-item"><h4>${AR.escape(u.email||"Usuario")}</h4><div class="sa-muted">${AR.escape(nm[u.negocio_id]||"Negocio")} · ${u.es_admin?"Administrador":u.es_profesional?"Profesional":"Sin rol"} · ${u.activo?"Activo":"Inactivo"}</div><div class="sa-actions"><button type="button" onclick="editarUsuarioSA('${u.usuario_id}','${u.negocio_id}','${u.es_admin?"admin":"profesional"}','${AR.escape(u.email||"")}')">✏️ Editar</button><button type="button" onclick="toggleUsuarioSA('${u.usuario_id}','${u.negocio_id}',${!!u.activo})">${u.activo?"⏸️ Desactivar":"▶️ Activar"}</button><button type="button" onclick="eliminarUsuarioSA('${u.usuario_id}')">🗑️ Eliminar</button></div></div>`).join("")||'<div class="sin-resultados">Sin usuarios.</div>';
   } catch(e){cont.innerHTML=`<div class="sin-resultados">${AR.escape(e.message)}</div>`;}
 }
 async function editarUsuarioSA(usuario_id,negocio_id,rol,emailActual){
   const email=prompt("Correo:",emailActual); if(!email)return; const nuevoRol=prompt("Rol (admin/profesional):",rol); if(!["admin","profesional"].includes(nuevoRol))return msg("Rol no válido.",true); const password=prompt("Nueva contraseña (déjala vacía para conservarla):","");
   const {data:{session}}=await db.auth.getSession(); const r=await fetch("/api/manage-users",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({usuario_id,negocio_id,rol:nuevoRol,email,password:password||undefined})}); const out=await r.json(); if(!r.ok)return msg(out.error||"No se pudo editar.",true); msg("Usuario actualizado."); await cargarUsuarios();
 }
+async function toggleUsuarioSA(usuario_id,negocio_id,activo){const {data:{session}}=await db.auth.getSession();if(!session)return msg("Tu sesión expiró.",true);const r=await fetch("/api/manage-users",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({usuario_id,negocio_id,activo:!activo})});const out=await r.json();if(!r.ok)return msg(out.error||"No se pudo cambiar el estado.",true);msg(activo?"Usuario desactivado.":"Usuario activado.");await cargarUsuarios();}
 async function eliminarUsuarioSA(usuario_id){if(!confirm("¿Eliminar este acceso de usuario?"))return; const {data:{session}}=await db.auth.getSession(); const r=await fetch("/api/manage-users",{method:"DELETE",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({usuario_id})}); const out=await r.json(); if(!r.ok)return msg(out.error||"No se pudo eliminar.",true); msg("Usuario eliminado."); await Promise.all([cargarUsuarios(),cargarProfesionales()]);}
 
 /* =========================================================
