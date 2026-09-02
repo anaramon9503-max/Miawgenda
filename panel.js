@@ -89,6 +89,9 @@ const btnCancelarFormulario =
 const contadorCitas =
   document.getElementById("contadorCitas");
 
+const tituloListaCitas =
+  document.getElementById("tituloListaCitas");
+
 const accesoSuperAdmin =
   document.getElementById("accesoSuperAdmin");
 
@@ -111,7 +114,16 @@ let esAdmin = false;
 let profesionalesActuales = [];
 let serviciosActuales = [];
 let citasActuales = [];
-let filtroEstadoActual = "proximas";
+
+// Filtros de citas.
+// El comportamiento inicial conserva lo que ya teníamos:
+// próximas + pendientes/confirmadas.
+let filtroPeriodoActual = "proximas";
+let filtroEstadoActual = "activas";
+
+let filtroDiaActual = fechaLocalHoy();
+let filtroSemanaActual = semanaISODesdeFecha(fechaLocalHoy());
+let filtroMesActual = fechaLocalHoy().slice(0, 7);
 
 
 // =====================================================
@@ -670,7 +682,7 @@ async function cargarCitas() {
     </div>
   `;
 
-  asegurarFiltrosEstado();
+  asegurarFiltrosCitas();
 
   const hoy = fechaLocalHoy();
 
@@ -694,15 +706,59 @@ async function cargarCitas() {
       .order("fecha", { ascending: true })
       .order("hora_inicio", { ascending: true });
 
-  // Próximas, pendientes y confirmadas solo muestran hoy en adelante.
-  if (["proximas", "pendiente", "confirmada"].includes(filtroEstadoActual)) {
+  // ==============================
+  // FILTRO POR PERIODO
+  // ==============================
+
+  if (filtroPeriodoActual === "proximas") {
     consulta = consulta.gte("fecha", hoy);
   }
 
-  if (filtroEstadoActual === "proximas") {
-    consulta = consulta.in("estado", ["pendiente", "confirmada"]);
+  if (filtroPeriodoActual === "dia") {
+    consulta = consulta.eq(
+      "fecha",
+      filtroDiaActual || hoy
+    );
+  }
+
+  if (filtroPeriodoActual === "semana") {
+    const rango = rangoSemanaISO(
+      filtroSemanaActual ||
+      semanaISODesdeFecha(hoy)
+    );
+
+    consulta = consulta
+      .gte("fecha", rango.inicio)
+      .lte("fecha", rango.fin);
+  }
+
+  if (filtroPeriodoActual === "mes") {
+    const rango = rangoMes(
+      filtroMesActual ||
+      hoy.slice(0, 7)
+    );
+
+    consulta = consulta
+      .gte("fecha", rango.inicio)
+      .lte("fecha", rango.fin);
+  }
+
+  // "todas" no agrega restricción de fecha.
+
+  // ==============================
+  // FILTRO POR ESTADO
+  // ==============================
+
+  if (filtroEstadoActual === "activas") {
+    consulta = consulta.in(
+      "estado",
+      ["pendiente", "confirmada"]
+    );
   } else if (filtroEstadoActual !== "todas") {
-    consulta = consulta.eq("estado", filtroEstadoActual);
+    consulta = consulta.eq(
+      "estado",
+      filtroEstadoActual
+    );
   }
 
   if (esProfesional && !esAdmin && profesionalActualId) {
@@ -809,60 +865,582 @@ async function cargarCitas() {
 
 
 // =====================================================
-// FILTROS DE ESTADO
+// FILTROS DE CITAS: PERIODO + ESTADO
 // =====================================================
 
-function asegurarFiltrosEstado() {
-  const existente = document.getElementById("filtrosEstadoCitas");
+function asegurarFiltrosCitas() {
+
+  const existente =
+    document.getElementById(
+      "filtrosCitas"
+    );
 
   if (existente) {
-    actualizarFiltroEstadoVisual();
+    actualizarFiltrosVisuales();
+    actualizarTituloCitas();
     return;
   }
 
-  const contenedor = document.createElement("div");
-  contenedor.id = "filtrosEstadoCitas";
-  contenedor.className = "filtros-estado-citas";
+  const contenedor =
+    document.createElement("div");
+
+  contenedor.id =
+    "filtrosCitas";
+
+  contenedor.className =
+    "filtros-citas-panel";
 
   contenedor.innerHTML = `
-    <label for="selectorEstadoCitas" class="filtro-estado-label">
-      Ver citas
-    </label>
+    <div class="filtros-citas-grid">
 
-    <select id="selectorEstadoCitas" class="filtro-estado-select">
-      <option value="proximas">Próximas</option>
-      <option value="pendiente">Pendientes</option>
-      <option value="confirmada">Confirmadas</option>
-      <option value="atendida">Atendidas</option>
-      <option value="cancelada">Canceladas</option>
-      <option value="no_asistio">No asistió</option>
-      <option value="todas">Todas</option>
-    </select>
+      <div class="filtro-citas-campo">
+        <label for="selectorPeriodoCitas">
+          Periodo
+        </label>
+
+        <select id="selectorPeriodoCitas">
+          <option value="proximas">Próximas</option>
+          <option value="dia">Día</option>
+          <option value="semana">Semana</option>
+          <option value="mes">Mes</option>
+          <option value="todas">Todas</option>
+        </select>
+      </div>
+
+      <div class="filtro-citas-campo">
+        <label for="selectorEstadoCitas">
+          Estado
+        </label>
+
+        <select id="selectorEstadoCitas">
+          <option value="activas">Pendientes + confirmadas</option>
+          <option value="pendiente">Pendientes</option>
+          <option value="confirmada">Confirmadas</option>
+          <option value="atendida">Atendidas</option>
+          <option value="cancelada">Canceladas</option>
+          <option value="no_asistio">No asistió</option>
+          <option value="todas">Todos los estados</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div
+      id="filtroFechaEspecifica"
+      class="filtro-fecha-especifica oculto"
+    >
+
+      <div
+        id="campoFiltroDia"
+        class="filtro-fecha-tipo oculto"
+      >
+        <label for="filtroFechaDia">
+          Selecciona el día
+        </label>
+
+        <input
+          id="filtroFechaDia"
+          type="date"
+        >
+      </div>
+
+      <div
+        id="campoFiltroSemana"
+        class="filtro-fecha-tipo oculto"
+      >
+        <label for="filtroFechaSemana">
+          Selecciona la semana
+        </label>
+
+        <input
+          id="filtroFechaSemana"
+          type="week"
+        >
+      </div>
+
+      <div
+        id="campoFiltroMes"
+        class="filtro-fecha-tipo oculto"
+      >
+        <label for="filtroFechaMes">
+          Selecciona el mes
+        </label>
+
+        <input
+          id="filtroFechaMes"
+          type="month"
+        >
+      </div>
+
+    </div>
   `;
 
-  const referencia = contadorCitas || listaCitas;
-  referencia.parentNode.insertBefore(contenedor, referencia);
+  const referencia =
+    contadorCitas || listaCitas;
 
-  const selector =
-    document.getElementById("selectorEstadoCitas");
+  referencia.parentNode.insertBefore(
+    contenedor,
+    referencia
+  );
 
-  selector.addEventListener("change", async () => {
-    filtroEstadoActual = selector.value;
-    await cargarCitas();
-  });
+  const selectorPeriodo =
+    document.getElementById(
+      "selectorPeriodoCitas"
+    );
+
+  const selectorEstado =
+    document.getElementById(
+      "selectorEstadoCitas"
+    );
+
+  const inputDia =
+    document.getElementById(
+      "filtroFechaDia"
+    );
+
+  const inputSemana =
+    document.getElementById(
+      "filtroFechaSemana"
+    );
+
+  const inputMes =
+    document.getElementById(
+      "filtroFechaMes"
+    );
+
+  selectorPeriodo.addEventListener(
+    "change",
+    async () => {
+
+      filtroPeriodoActual =
+        selectorPeriodo.value;
+
+      mostrarCampoPeriodo();
+
+      await cargarCitas();
+    }
+  );
+
+  selectorEstado.addEventListener(
+    "change",
+    async () => {
+
+      filtroEstadoActual =
+        selectorEstado.value;
+
+      await cargarCitas();
+    }
+  );
+
+  inputDia.addEventListener(
+    "change",
+    async () => {
+
+      filtroDiaActual =
+        inputDia.value ||
+        fechaLocalHoy();
+
+      await cargarCitas();
+    }
+  );
+
+  inputSemana.addEventListener(
+    "change",
+    async () => {
+
+      filtroSemanaActual =
+        inputSemana.value ||
+        semanaISODesdeFecha(
+          fechaLocalHoy()
+        );
+
+      await cargarCitas();
+    }
+  );
+
+  inputMes.addEventListener(
+    "change",
+    async () => {
+
+      filtroMesActual =
+        inputMes.value ||
+        fechaLocalHoy().slice(
+          0,
+          7
+        );
+
+      await cargarCitas();
+    }
+  );
 
   agregarEstilosCitas();
-  actualizarFiltroEstadoVisual();
+  actualizarFiltrosVisuales();
+  mostrarCampoPeriodo();
+  actualizarTituloCitas();
 }
 
-function actualizarFiltroEstadoVisual() {
-  const selector =
-    document.getElementById("selectorEstadoCitas");
 
-  if (selector) {
-    selector.value = filtroEstadoActual;
+function actualizarFiltrosVisuales() {
+
+  const selectorPeriodo =
+    document.getElementById(
+      "selectorPeriodoCitas"
+    );
+
+  const selectorEstado =
+    document.getElementById(
+      "selectorEstadoCitas"
+    );
+
+  const inputDia =
+    document.getElementById(
+      "filtroFechaDia"
+    );
+
+  const inputSemana =
+    document.getElementById(
+      "filtroFechaSemana"
+    );
+
+  const inputMes =
+    document.getElementById(
+      "filtroFechaMes"
+    );
+
+  if (selectorPeriodo) {
+    selectorPeriodo.value =
+      filtroPeriodoActual;
+  }
+
+  if (selectorEstado) {
+    selectorEstado.value =
+      filtroEstadoActual;
+  }
+
+  if (inputDia) {
+    inputDia.value =
+      filtroDiaActual;
+  }
+
+  if (inputSemana) {
+    inputSemana.value =
+      filtroSemanaActual;
+  }
+
+  if (inputMes) {
+    inputMes.value =
+      filtroMesActual;
+  }
+
+  mostrarCampoPeriodo();
+}
+
+
+function mostrarCampoPeriodo() {
+
+  const bloque =
+    document.getElementById(
+      "filtroFechaEspecifica"
+    );
+
+  const campoDia =
+    document.getElementById(
+      "campoFiltroDia"
+    );
+
+  const campoSemana =
+    document.getElementById(
+      "campoFiltroSemana"
+    );
+
+  const campoMes =
+    document.getElementById(
+      "campoFiltroMes"
+    );
+
+  if (
+    !bloque ||
+    !campoDia ||
+    !campoSemana ||
+    !campoMes
+  ) {
+    return;
+  }
+
+  campoDia.classList.add(
+    "oculto"
+  );
+
+  campoSemana.classList.add(
+    "oculto"
+  );
+
+  campoMes.classList.add(
+    "oculto"
+  );
+
+  if (
+    !["dia", "semana", "mes"]
+      .includes(filtroPeriodoActual)
+  ) {
+    bloque.classList.add(
+      "oculto"
+    );
+
+    return;
+  }
+
+  bloque.classList.remove(
+    "oculto"
+  );
+
+  if (
+    filtroPeriodoActual === "dia"
+  ) {
+    campoDia.classList.remove(
+      "oculto"
+    );
+  }
+
+  if (
+    filtroPeriodoActual === "semana"
+  ) {
+    campoSemana.classList.remove(
+      "oculto"
+    );
+  }
+
+  if (
+    filtroPeriodoActual === "mes"
+  ) {
+    campoMes.classList.remove(
+      "oculto"
+    );
   }
 }
+
+
+function actualizarTituloCitas() {
+
+  if (!tituloListaCitas) {
+    return;
+  }
+
+  const nombres = {
+    proximas:
+      "Próximas citas",
+    dia:
+      "Citas del día",
+    semana:
+      "Citas de la semana",
+    mes:
+      "Citas del mes",
+    todas:
+      "Todas las citas"
+  };
+
+  tituloListaCitas.textContent =
+    nombres[filtroPeriodoActual] ||
+    "Citas";
+}
+
+
+// =====================================================
+// AYUDANTES DE RANGO DE FECHA
+// =====================================================
+
+function semanaISODesdeFecha(
+  fechaISO
+) {
+
+  const [año, mes, dia] =
+    fechaISO
+      .split("-")
+      .map(Number);
+
+  const fecha =
+    new Date(
+      Date.UTC(
+        año,
+        mes - 1,
+        dia
+      )
+    );
+
+  const numeroDia =
+    fecha.getUTCDay() || 7;
+
+  fecha.setUTCDate(
+    fecha.getUTCDate() +
+    4 -
+    numeroDia
+  );
+
+  const inicioAño =
+    new Date(
+      Date.UTC(
+        fecha.getUTCFullYear(),
+        0,
+        1
+      )
+    );
+
+  const semana =
+    Math.ceil(
+      (
+        (
+          fecha -
+          inicioAño
+        ) /
+        86400000 +
+        1
+      ) /
+      7
+    );
+
+  return (
+    fecha.getUTCFullYear() +
+    "-W" +
+    String(semana)
+      .padStart(2, "0")
+  );
+}
+
+
+function rangoSemanaISO(
+  semanaISO
+) {
+
+  const partes =
+    String(semanaISO)
+      .match(
+        /^(\d{4})-W(\d{2})$/
+      );
+
+  if (!partes) {
+    const hoy =
+      fechaLocalHoy();
+
+    return {
+      inicio: hoy,
+      fin: hoy
+    };
+  }
+
+  const año =
+    Number(partes[1]);
+
+  const semana =
+    Number(partes[2]);
+
+  const cuatroEnero =
+    new Date(
+      Date.UTC(
+        año,
+        0,
+        4
+      )
+    );
+
+  const diaSemana =
+    cuatroEnero.getUTCDay() || 7;
+
+  const lunesSemana1 =
+    new Date(cuatroEnero);
+
+  lunesSemana1.setUTCDate(
+    cuatroEnero.getUTCDate() -
+    diaSemana +
+    1
+  );
+
+  const lunes =
+    new Date(lunesSemana1);
+
+  lunes.setUTCDate(
+    lunesSemana1.getUTCDate() +
+    (semana - 1) * 7
+  );
+
+  const domingo =
+    new Date(lunes);
+
+  domingo.setUTCDate(
+    lunes.getUTCDate() + 6
+  );
+
+  return {
+    inicio:
+      fechaUTCaISO(lunes),
+    fin:
+      fechaUTCaISO(domingo)
+  };
+}
+
+
+function rangoMes(
+  mesISO
+) {
+
+  const partes =
+    String(mesISO)
+      .match(
+        /^(\d{4})-(\d{2})$/
+      );
+
+  if (!partes) {
+    const hoy =
+      fechaLocalHoy();
+
+    return {
+      inicio: hoy,
+      fin: hoy
+    };
+  }
+
+  const año =
+    Number(partes[1]);
+
+  const mes =
+    Number(partes[2]);
+
+  const ultimoDia =
+    new Date(
+      año,
+      mes,
+      0
+    ).getDate();
+
+  return {
+    inicio:
+      `${año}-${String(mes)
+        .padStart(2, "0")}-01`,
+    fin:
+      `${año}-${String(mes)
+        .padStart(2, "0")}-${String(
+          ultimoDia
+        ).padStart(2, "0")}`
+  };
+}
+
+
+function fechaUTCaISO(
+  fecha
+) {
+
+  return (
+    fecha.getUTCFullYear() +
+    "-" +
+    String(
+      fecha.getUTCMonth() + 1
+    ).padStart(2, "0") +
+    "-" +
+    String(
+      fecha.getUTCDate()
+    ).padStart(2, "0")
+  );
+}
+
 
 function botonesPorEstado(cita) {
   const id = cita.id;
@@ -956,7 +1534,61 @@ function agregarEstilosCitas() {
       padding: 8px 14px;
       border-radius: 999px;
     }
-    .estado-pendiente { background: #fff3c4; color: #795b00; }
+    .filtros-citas-panel{
+  width:100%;
+  margin:0 0 15px;
+  padding:13px;
+  border:1px solid #e8e0ec;
+  border-radius:16px;
+  background:#faf8fb;
+}
+
+.filtros-citas-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.filtro-citas-campo label,
+.filtro-fecha-tipo label{
+  display:block;
+  margin-bottom:6px;
+  font-size:12px;
+  font-weight:700;
+  color:#6f6574;
+}
+
+.filtro-citas-campo select,
+.filtro-fecha-tipo input{
+  width:100%;
+  margin:0;
+  padding:12px 13px;
+  border:1px solid #ddd6df;
+  border-radius:12px;
+  background:#fff;
+  color:#514458;
+  font-size:14px;
+  font-weight:600;
+  font-family:Arial,sans-serif;
+}
+
+.filtro-fecha-especifica{
+  margin-top:10px;
+}
+
+.filtro-citas-campo select:focus,
+.filtro-fecha-tipo input:focus{
+  outline:2px solid #cfc3d4;
+  border-color:#8b7a92;
+}
+
+@media(max-width:520px){
+  .filtros-citas-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+.estado-pendiente { background: #fff3c4; color: #795b00; }
     .estado-confirmada { background: #eee4ff; color: #5f36aa; }
     .estado-atendida { background: #dff4e7; color: #256b3d; }
     .estado-cancelada { background: #ffe0e5; color: #a22d42; }

@@ -36,7 +36,7 @@ let profesionales = [];
 let servicios = [];
 
 btnVolver?.addEventListener("click", () => {
-  window.location.href = "panel.html";
+  window.location.href = "dashboard.html";
 });
 
 btnCerrar?.addEventListener("click", cerrarSesion);

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AR Agenda | Dashboard</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      padding-bottom:105px;
+    }
+
+    .dashboard-bienvenida{
+      margin-bottom:20px;
+      padding:22px;
+      background:#fff;
+      border:1px solid #e8e1ec;
+      border-radius:22px;
+    }
+
+    .dashboard-bienvenida .mini{
+      margin:0 0 7px;
+      font-size:13px;
+      color:#81778a;
+    }
+
+    .dashboard-bienvenida h2{
+      margin:0;
+      font-size:25px;
+      color:#352d3d;
+    }
+
+    .dashboard-bienvenida p{
+      margin:8px 0 0;
+      color:#7a7082;
+      font-size:14px;
+    }
+
+    .dashboard-grid{
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:12px;
+      margin:18px 0 24px;
+    }
+
+    .dashboard-card{
+      background:#fff;
+      border:1px solid #e8e1ec;
+      border-radius:20px;
+      padding:18px;
+      min-height:112px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+
+    .dashboard-card .icono{
+      font-size:24px;
+      margin-bottom:12px;
+    }
+
+    .dashboard-card .numero{
+      font-size:27px;
+      font-weight:800;
+      color:#493d52;
+    }
+
+    .dashboard-card .texto{
+      margin-top:4px;
+      font-size:13px;
+      color:#7d7284;
+    }
+
+    .dashboard-accesos{
+      margin-top:14px;
+      display:grid;
+      gap:10px;
+    }
+
+    .dashboard-acceso{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      width:100%;
+      text-decoration:none;
+      background:#fff;
+      border:1px solid #e6dfea;
+      border-radius:18px;
+      padding:16px;
+      color:#43384a;
+    }
+
+    .dashboard-acceso .acceso-icono{
+      width:46px;
+      height:46px;
+      border-radius:14px;
+      display:grid;
+      place-items:center;
+      background:#f0e9ff;
+      font-size:22px;
+    }
+
+    .dashboard-acceso strong{
+      display:block;
+      font-size:15px;
+      margin-bottom:3px;
+    }
+
+    .dashboard-acceso span{
+      font-size:12px;
+      color:#82778a;
+    }
+
+    .dashboard-sesion{
+      margin-top:20px;
+      padding:15px;
+      background:#faf8fb;
+      border:1px solid #ece5ef;
+      border-radius:16px;
+      font-size:13px;
+      color:#756b7b;
+    }
+
+    .dashboard-sesion strong{
+      color:#514658;
+    }
+
+    .btn-salir-dashboard{
+      width:100%;
+      margin-top:12px;
+      padding:14px;
+      border:1px solid #ddd5e2;
+      border-radius:14px;
+      background:white;
+      color:#625769;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .nav-inferior{
+      position:fixed;
+      left:50%;
+      bottom:12px;
+      transform:translateX(-50%);
+      width:min(calc(100% - 24px), 620px);
+      display:grid;
+      grid-template-columns:repeat(5, 1fr);
+      gap:4px;
+      padding:8px;
+      background:rgba(255,255,255,.97);
+      border:1px solid #ddd6e2;
+      border-radius:25px;
+      box-shadow:0 10px 30px rgba(65,48,76,.12);
+      z-index:999;
+      backdrop-filter:blur(12px);
+    }
+
+    .nav-item{
+      min-width:0;
+      padding:9px 4px;
+      border-radius:17px;
+      text-decoration:none;
+      text-align:center;
+      color:#746a79;
+      font-size:11px;
+    }
+
+    .nav-item .nav-icono{
+      display:block;
+      font-size:21px;
+      margin-bottom:4px;
+    }
+
+    .nav-item.activo{
+      background:#7b55da;
+      color:#fff;
+    }
+
+    .oculto{
+      display:none !important;
+    }
+
+    @media(max-width:420px){
+      .dashboard-grid{
+        grid-template-columns:1fr 1fr;
+      }
+
+      .dashboard-card{
+        padding:15px;
+      }
+
+      .nav-inferior{
+        width:calc(100% - 18px);
+        bottom:8px;
+      }
+
+      .nav-item{
+        font-size:10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+  <div class="encabezado">
+    <h1>AR Agenda</h1>
+    <p>Dashboard</p>
+  </div>
+
+  <div class="tarjeta">
+
+    <div class="dashboard-bienvenida">
+      <p class="mini">Bienvenida 💜</p>
+      <h2 id="nombreNegocio">Cargando...</h2>
+      <p>Control general de tu agenda.</p>
+    </div>
+
+    <div class="dashboard-grid">
+
+      <div class="dashboard-card">
+        <div class="icono">📅</div>
+        <div>
+          <div id="citasHoy" class="numero">—</div>
+          <div class="texto">Citas de hoy</div>
+        </div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="icono">⏳</div>
+        <div>
+          <div id="citasPendientes" class="numero">—</div>
+          <div class="texto">Pendientes</div>
+        </div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="icono">💜</div>
+        <div>
+          <div id="citasConfirmadas" class="numero">—</div>
+          <div class="texto">Confirmadas</div>
+        </div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="icono">👩‍⚕️</div>
+        <div>
+          <div id="profesionalesActivos" class="numero">—</div>
+          <div class="texto">Profesionales activos</div>
+        </div>
+      </div>
+
+    </div>
+
+    <h3 style="margin:5px 0 12px;">Accesos rápidos</h3>
+
+    <div class="dashboard-accesos">
+
+      <a href="panel.html" class="dashboard-acceso">
+        <div class="acceso-icono">📅</div>
+        <div>
+          <strong>Citas</strong>
+          <span>Ver, agregar y administrar citas</span>
+        </div>
+      </a>
+
+      <a href="profesionales.html" class="dashboard-acceso" id="accesoProfesionales">
+        <div class="acceso-icono">👩‍⚕️</div>
+        <div>
+          <strong>Profesionales</strong>
+          <span>Administra tu equipo y sus servicios</span>
+        </div>
+      </a>
+
+      <a href="servicios.html" class="dashboard-acceso" id="accesoServicios">
+        <div class="acceso-icono">🛍️</div>
+        <div>
+          <strong>Servicios</strong>
+          <span>Precios, duración y servicios activos</span>
+        </div>
+      </a>
+
+      <a href="horarios.html" class="dashboard-acceso" id="accesoHorarios">
+        <div class="acceso-icono">🕐</div>
+        <div>
+          <strong>Horarios</strong>
+          <span>Disponibilidad por profesional y servicio</span>
+        </div>
+      </a>
+
+    </div>
+
+    <div class="dashboard-sesion">
+      Sesión: <strong id="correoUsuario"></strong>
+
+      <button
+        id="btnCerrar"
+        type="button"
+        class="btn-salir-dashboard"
+      >
+        Cerrar sesión
+      </button>
+    </div>
+
+    <div id="mensaje" class="mensaje oculto"></div>
+
+  </div>
+
+</div>
+
+<nav class="nav-inferior">
+
+  <a href="dashboard.html" class="nav-item activo">
+    <span class="nav-icono">🏠</span>
+    Inicio
+  </a>
+
+  <a href="panel.html" class="nav-item">
+    <span class="nav-icono">📅</span>
+    Citas
+  </a>
+
+  <a href="profesionales.html" class="nav-item" id="navProfesionales">
+    <span class="nav-icono">👩‍⚕️</span>
+    Profes.
+  </a>
+
+  <a href="servicios.html" class="nav-item" id="navServicios">
+    <span class="nav-icono">🛍️</span>
+    Servicios
+  </a>
+
+  <a href="horarios.html" class="nav-item" id="navHorarios">
+    <span class="nav-icono">🕐</span>
+    Horarios
+  </a>
+
+</nav>
+
+<script src="dashboard.js"></script>
+
+</body>
+</html>

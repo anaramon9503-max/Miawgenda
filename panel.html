@@ -192,6 +192,25 @@
     }
 
   </style>
+
+<style>
+  body{padding-bottom:105px;}
+  .nav-inferior-ar{
+    position:fixed; left:50%; bottom:10px; transform:translateX(-50%);
+    width:min(calc(100% - 20px),620px); display:grid;
+    grid-template-columns:repeat(5,1fr); gap:4px; padding:8px;
+    background:rgba(255,255,255,.97); border:1px solid #ddd6e2;
+    border-radius:24px; box-shadow:0 10px 30px rgba(65,48,76,.12);
+    z-index:999; backdrop-filter:blur(12px);
+  }
+  .nav-inferior-ar a{
+    min-width:0; padding:9px 3px; border-radius:16px;
+    text-decoration:none; text-align:center; color:#746a79; font-size:10px;
+  }
+  .nav-inferior-ar .nav-icono{display:block;font-size:20px;margin-bottom:4px;}
+  .nav-inferior-ar a.activo{background:#7b55da;color:#fff;}
+</style>
+
 </head>
 
 <body>
@@ -207,7 +226,7 @@
     <h1>AR Agenda</h1>
 
     <p>
-      Panel de administración
+      Citas
     </p>
 
   </div>
@@ -281,6 +300,27 @@
           Mis citas 💜
         </h2>
 
+
+
+        <!-- DASHBOARD -->
+
+        <a
+          id="accesoDashboard"
+          href="dashboard.html"
+          style="text-decoration:none;"
+        >
+          <button
+            type="button"
+            class="cerrar"
+            style="
+              width:100%;
+              padding:15px;
+              margin:10px 0;
+            "
+          >
+            ← Volver al Dashboard
+          </button>
+        </a>
 
         <!-- SÚPER ADMIN -->
 
@@ -581,7 +621,7 @@
 
       <div class="citas-cabecera">
 
-        <h2 class="titulo-citas">
+        <h2 id="tituloListaCitas" class="titulo-citas">
           Próximas citas
         </h2>
 
@@ -626,6 +666,8 @@
 ========================================== -->
 
 <script src="panel.js"></script>
+
+<nav class="nav-inferior-ar"><a href="dashboard.html"><span class="nav-icono">🏠</span>Inicio</a><a href="panel.html" class="activo"><span class="nav-icono">📅</span>Citas</a><a href="profesionales.html"><span class="nav-icono">👩‍⚕️</span>Profes.</a><a href="servicios.html"><span class="nav-icono">🛍️</span>Servicios</a><a href="horarios.html"><span class="nav-icono">🕐</span>Horarios</a></nav>
 
 </body>
 </html>
