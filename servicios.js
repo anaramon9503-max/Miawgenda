@@ -20,6 +20,7 @@ const servicioNombre = $("servicioNombre");
 const servicioDescripcion = $("servicioDescripcion");
 const servicioDuracion = $("servicioDuracion");
 const servicioPrecio = $("servicioPrecio");
+const servicioModalidad = $("servicioModalidad");
 const btnGuardarServicio = $("btnGuardarServicio");
 const btnCancelarEdicionServicio = $("btnCancelarEdicionServicio");
 const tituloFormularioServicio = $("tituloFormularioServicio");
@@ -173,6 +174,7 @@ async function cargarServicios() {
         descripcion,
         duracion_minutos,
         precio,
+        modalidad,
         activo
       `)
       .eq(
@@ -275,6 +277,10 @@ function renderServicios() {
           💲 ${precio}
         </span>
 
+        <span class="servicio-chip">
+          ${servicio.modalidad === "en_linea" ? "💻 En línea" : "📍 Presencial"}
+        </span>
+
         <span class="servicio-chip ${
           servicio.activo
             ? ""
@@ -339,6 +345,8 @@ async function guardarServicio() {
   const precioTexto =
     servicioPrecio.value.trim();
 
+  const modalidad = servicioModalidad?.value || "presencial";
+
   const precio =
     precioTexto === ""
       ? null
@@ -394,7 +402,8 @@ async function guardarServicio() {
               descripcion || null,
             duracion_minutos:
               duracion,
-            precio
+            precio,
+            modalidad
           })
           .eq("id", id)
           .eq(
@@ -421,6 +430,7 @@ async function guardarServicio() {
             duracion_minutos:
               duracion,
             precio,
+            modalidad,
             activo:
               true
           });
@@ -480,6 +490,8 @@ function editarServicio(
   servicioPrecio.value =
     servicio.precio ?? "";
 
+  if (servicioModalidad) servicioModalidad.value = servicio.modalidad || "presencial";
+
   tituloFormularioServicio.textContent =
     "Editar servicio";
 
@@ -499,6 +511,7 @@ function limpiarFormulario() {
   servicioDescripcion.value = "";
   servicioDuracion.value = "60";
   servicioPrecio.value = "";
+  if (servicioModalidad) servicioModalidad.value = "presencial";
 
   tituloFormularioServicio.textContent =
     "Agregar servicio";

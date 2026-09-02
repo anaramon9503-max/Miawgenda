@@ -79,6 +79,10 @@ function abrirTab(tab) {
 
 function conectarEventos() {
   $("formNegocio").onsubmit = crearNegocio;
+  $("negocioLogoArchivo")?.addEventListener("change", e => previsualizarArchivo(e.target.files?.[0], "negocioLogoPreview"));
+  $("editNegocioLogoArchivo")?.addEventListener("change", e => previsualizarArchivo(e.target.files?.[0], "editNegocioLogoPreview"));
+  $("formEditarNegocio")?.addEventListener("submit", guardarEdicionNegocio);
+  $("btnCancelarEditarNegocio")?.addEventListener("click", cerrarEditarNegocio);
   $("formUsuario").onsubmit = crearUsuario;
   $("formProfesional").onsubmit = crearProfesional;
   $("formServicioSA").onsubmit = crearServicio;
@@ -108,7 +112,7 @@ function conectarEventos() {
 async function cargarNegocios() {
   const { data, error } = await db
     .from("negocios")
-    .select("id,nombre,activo")
+    .select("id,nombre,activo,whatsapp,logo_url,color_marca,direccion,mensaje_confirmacion")
     .order("nombre");
 
   if (error) {
@@ -122,10 +126,9 @@ async function cargarNegocios() {
     ? negocios.map(n => `
         <div class="sa-item">
           <h4>${AR.escape(n.nombre)}</h4>
-          <span class="sa-badge">${n.activo ? "Activo" : "Inactivo"}</span>
+          <span class="sa-badge">${n.activo ? "Activo" : "Inactivo"}</span><div class="sa-muted">${AR.escape(n.whatsapp || "Sin WhatsApp")}</div>
           <div class="sa-actions">
-            <button type="button" onclick="editarNegocio('${n.id}')">✏️ Editar</button>
-            <button type="button" onclick="copiarAgendaPublica('${n.id}')">🔗 Copiar agenda</button>
+            <button type="button" onclick="editarNegocio('${n.id}')">✏️ Editar</button><button type="button" onclick="copiarAgenda('${n.id}')">🔗 Copiar agenda</button>
             <button type="button" onclick="toggleNegocio('${n.id}', ${!!n.activo})">${n.activo ? "⏸️ Desactivar" : "▶️ Activar"}</button>
             <button type="button" onclick="eliminarNegocio('${n.id}')">🗑️ Eliminar</button>
           </div>
@@ -146,33 +149,6 @@ async function cargarNegocios() {
     await llenarProfesionalesHorario();
   }
 }
-
-async function copiarAgendaPublica(negocioId) {
-  const url = new URL("/", window.location.origin);
-  url.searchParams.set("negocio", negocioId);
-  const liga = url.toString();
-
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(liga);
-    } else {
-      const area = document.createElement("textarea");
-      area.value = liga;
-      area.setAttribute("readonly", "");
-      area.style.position = "fixed";
-      area.style.opacity = "0";
-      document.body.appendChild(area);
-      area.select();
-      document.execCommand("copy");
-      area.remove();
-    }
-
-    msg("Liga de agenda pública copiada ✓");
-  } catch (error) {
-    window.prompt("Copia esta liga de agenda pública:", liga);
-  }
-}
-
 
 function rellenarNegocios(sel, todos = false) {
   if (!sel) return;
@@ -199,39 +175,40 @@ function rellenarNegocios(sel, todos = false) {
    CREAR NEGOCIO
 ========================================================= */
 
+async function subirLogoNegocio(archivo, negocioId) {
+  if (!archivo) return null;
+  if (!archivo.type.startsWith("image/")) throw new Error("Selecciona una imagen válida.");
+  if (archivo.size > 5 * 1024 * 1024) throw new Error("El logo debe pesar menos de 5 MB.");
+  const ext = (archivo.name.split(".").pop() || "jpg").toLowerCase();
+  const ruta = `${negocioId}/${Date.now()}.${ext}`;
+  const { error } = await db.storage.from("logos-negocios").upload(ruta, archivo, { upsert: true, contentType: archivo.type });
+  if (error) throw error;
+  const { data } = db.storage.from("logos-negocios").getPublicUrl(ruta);
+  return data.publicUrl;
+}
+
+function previsualizarArchivo(archivo, idImg) {
+  const img = $(idImg); if (!img || !archivo) return;
+  img.src = URL.createObjectURL(archivo); img.style.display = "block";
+}
+
 async function crearNegocio(e) {
-  e.preventDefault();
-  clearMsg();
-
+  e.preventDefault(); clearMsg();
   const nombre = $("negocioNombre").value.trim();
-
-  if (!nombre) {
-    return msg("Escribe el nombre del negocio.", true);
-  }
-
-  const { error } = await db
-    .from("negocios")
-    .insert({
-      nombre,
-      activo: true
-    });
-
-  if (error) {
-    msg(error.message, true);
-    return;
-  }
-
-  e.target.reset();
-  msg("Negocio creado correctamente.");
-
-  await cargarNegocios();
-
-  await Promise.all([
-    cargarProfesionales(),
-    cargarServicios(),
-    cargarHorarios(),
-    cargarCitas()
-  ]);
+  if (!nombre) return msg("Escribe el nombre del negocio.", true);
+  const whatsapp = ($("negocioWhatsapp")?.value || "").replace(/\D/g, "");
+  if (whatsapp && whatsapp.length !== 10) return msg("El WhatsApp debe tener exactamente 10 dígitos.", true);
+  const color = ($("negocioColor")?.value || "#7b55da").trim();
+  if (color && !/^#[0-9a-f]{6}$/i.test(color)) return msg("El color debe ser HEX, por ejemplo #7b55da.", true);
+  const { data, error } = await db.from("negocios").insert({nombre,whatsapp:whatsapp||null,direccion:($("negocioDireccion")?.value||"").trim()||null,color_marca:color||"#7b55da",mensaje_confirmacion:($("negocioMensaje")?.value||"").trim()||null,activo:true}).select("id").single();
+  if (error) return msg(error.message,true);
+  try {
+    const archivo=$("negocioLogoArchivo")?.files?.[0];
+    if(archivo){ const url=await subirLogoNegocio(archivo,data.id); await db.from("negocios").update({logo_url:url}).eq("id",data.id); }
+  } catch(err){ return msg("Negocio creado, pero el logo no se pudo subir: "+err.message,true); }
+  e.target.reset(); $("negocioColor").value="#7b55da"; $("negocioLogoPreview").style.display="none";
+  msg("Negocio creado correctamente."); await cargarNegocios();
+  await Promise.all([cargarProfesionales(),cargarServicios(),cargarHorarios(),cargarCitas()]);
 }
 
 
@@ -1354,15 +1331,38 @@ async function cargarCitas() {
    CRUD SÚPER ADMIN
 ========================================================= */
 async function editarNegocio(id) {
-  const actual=negocios.find(n=>n.id===id); const nombre=prompt("Nombre del negocio:",actual?.nombre||""); if(!nombre?.trim())return;
-  const {error}=await db.from("negocios").update({nombre:nombre.trim()}).eq("id",id); if(error)return msg(error.message,true); msg("Negocio actualizado."); await cargarNegocios(); await cargarUsuarios();
+  const actual = negocios.find(n => n.id === id); if (!actual) return;
+  $("editNegocioId").value=id; $("editNegocioNombre").value=actual.nombre||"";
+  $("editNegocioWhatsapp").value=actual.whatsapp||""; $("editNegocioDireccion").value=actual.direccion||"";
+  $("editNegocioLogo").value=actual.logo_url||""; $("editNegocioColor").value=actual.color_marca||"#7b55da";
+  $("editNegocioMensaje").value=actual.mensaje_confirmacion||""; $("editNegocioLogoArchivo").value="";
+  const img=$("editNegocioLogoPreview"); if(actual.logo_url){img.src=actual.logo_url;img.style.display="block";}else img.style.display="none";
+  $("modalEditarNegocio").style.display="block";
 }
+function cerrarEditarNegocio(){ $("modalEditarNegocio").style.display="none"; }
+async function guardarEdicionNegocio(e){
+  e.preventDefault(); const id=$("editNegocioId").value; const whatsapp=$("editNegocioWhatsapp").value.replace(/\D/g,"");
+  if(whatsapp && whatsapp.length!==10) return msg("El WhatsApp debe tener exactamente 10 dígitos.",true);
+  const color=$("editNegocioColor").value.trim()||"#7b55da"; if(!/^#[0-9a-f]{6}$/i.test(color)) return msg("El color debe ser HEX, por ejemplo #7b55da.",true);
+  let logo_url=$("editNegocioLogo").value||null;
+  try{ const archivo=$("editNegocioLogoArchivo")?.files?.[0]; if(archivo) logo_url=await subirLogoNegocio(archivo,id); }catch(err){return msg("No se pudo subir el logo: "+err.message,true);}
+  const {error}=await db.from("negocios").update({nombre:$("editNegocioNombre").value.trim(),whatsapp:whatsapp||null,direccion:$("editNegocioDireccion").value.trim()||null,logo_url,color_marca:color,mensaje_confirmacion:$("editNegocioMensaje").value.trim()||null}).eq("id",id);
+  if(error)return msg(error.message,true); cerrarEditarNegocio(); msg("Negocio actualizado."); await cargarNegocios(); await cargarUsuarios();
+}
+
+
+async function copiarAgenda(id) {
+  const url = `${location.origin}/?negocio=${encodeURIComponent(id)}`;
+  try { await navigator.clipboard.writeText(url); msg("Liga de agenda copiada."); }
+  catch { prompt("Copia esta liga:", url); }
+}
+window.copiarAgenda = copiarAgenda;
 async function toggleNegocio(id,activo){const {error}=await db.from("negocios").update({activo:!activo}).eq("id",id);if(error)return msg(error.message,true);msg(activo?"Negocio desactivado.":"Negocio activado.");await cargarNegocios();}
 async function eliminarNegocio(id){if(!confirm("¿Eliminar este negocio? También puede afectar sus datos relacionados."))return;const {error}=await db.from("negocios").delete().eq("id",id);if(error)return msg("No se pudo eliminar: "+error.message,true);msg("Negocio eliminado.");await cargarNegocios();}
 async function editarProfesional(id){const {data:p,error:e}=await db.from("profesionales").select("nombre,especialidad").eq("id",id).single();if(e)return msg(e.message,true);const nombre=prompt("Nombre:",p.nombre||"");if(!nombre?.trim())return;const especialidad=prompt("Especialidad:",p.especialidad||"");const {error}=await db.from("profesionales").update({nombre:nombre.trim(),especialidad:especialidad?.trim()||null}).eq("id",id);if(error)return msg(error.message,true);msg("Profesional actualizado.");await cargarProfesionales();}
 async function toggleProfesional(id,activo){const {error}=await db.from("profesionales").update({activo:!activo}).eq("id",id);if(error)return msg(error.message,true);msg(activo?"Profesional desactivado.":"Profesional activado.");await Promise.all([cargarProfesionales(),llenarProfesionalesHorario()]);}
 async function eliminarProfesional(id){if(!confirm("¿Eliminar este profesional?"))return;const {error}=await db.from("profesionales").delete().eq("id",id);if(error)return msg(error.message,true);msg("Profesional eliminado.");await cargarProfesionales();}
-async function editarServicio(id){const {data:s,error:e}=await db.from("servicios").select("nombre,descripcion,duracion_minutos,precio").eq("id",id).single();if(e)return msg(e.message,true);const nombre=prompt("Nombre:",s.nombre||"");if(!nombre?.trim())return;const descripcion=prompt("Descripción:",s.descripcion||"");const dur=Number(prompt("Duración en minutos:",s.duracion_minutos||60));if(!dur)return;const precio=prompt("Precio:",s.precio??"");const {error}=await db.from("servicios").update({nombre:nombre.trim(),descripcion:descripcion?.trim()||null,duracion_minutos:dur,precio:precio===""?null:Number(precio)}).eq("id",id);if(error)return msg(error.message,true);msg("Servicio actualizado.");await cargarServicios();}
+async function editarServicio(id){const {data:s,error:e}=await db.from("servicios").select("nombre,descripcion,duracion_minutos,precio,modalidad").eq("id",id).single();if(e)return msg(e.message,true);const nombre=prompt("Nombre:",s.nombre||"");if(!nombre?.trim())return;const descripcion=prompt("Descripción:",s.descripcion||"");const dur=Number(prompt("Duración en minutos:",s.duracion_minutos||60));if(!dur)return;const precio=prompt("Precio:",s.precio??"");const modalidad=prompt("Modalidad: presencial o en_linea",s.modalidad||"presencial");if(!["presencial","en_linea"].includes(modalidad))return msg("Modalidad no válida.",true);const {error}=await db.from("servicios").update({nombre:nombre.trim(),descripcion:descripcion?.trim()||null,duracion_minutos:dur,precio:precio===""?null:Number(precio),modalidad}).eq("id",id);if(error)return msg(error.message,true);msg("Servicio actualizado.");await cargarServicios();}
 async function toggleServicio(id,activo){const {error}=await db.from("servicios").update({activo:!activo}).eq("id",id);if(error)return msg(error.message,true);msg(activo?"Servicio desactivado.":"Servicio activado.");await Promise.all([cargarServicios(),llenarServiciosHorario()]);}
 async function eliminarServicio(id){if(!confirm("¿Eliminar este servicio?"))return;const {error}=await db.from("servicios").delete().eq("id",id);if(error)return msg(error.message,true);msg("Servicio eliminado.");await cargarServicios();}
 async function editarHorarioSA(id){const {data:h,error:e}=await db.from("horarios").select("dia_semana,hora_inicio,hora_slot,servicio_id").eq("id",id).single();if(e)return msg(e.message,true);const dia=Number(prompt("Día (1=Lunes ... 7=Domingo):",h.dia_semana));if(!(dia>=1&&dia<=7))return msg("Día no válido.",true);const hora=prompt("Hora (HH:MM):",String(h.hora_slot||h.hora_inicio||"").slice(0,5));if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(hora||""))return msg("Hora no válida.",true);const {data:sv,error:se}=await db.from("servicios").select("duracion_minutos").eq("id",h.servicio_id).single();if(se)return msg(se.message,true);const {error}=await db.from("horarios").update({dia_semana:dia,hora_slot:hora+":00",hora_inicio:hora+":00",hora_fin:sumarMinutos(hora,Number(sv?.duracion_minutos||60))}).eq("id",id);if(error)return msg(error.message,true);msg("Horario actualizado.");await cargarHorarios();}
@@ -1391,3 +1391,6 @@ async function eliminarUsuarioSA(usuario_id){if(!confirm("¿Eliminar este acceso
 ========================================================= */
 
 init();
+
+
+document.getElementById("negocioWhatsapp")?.addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0,10); });
