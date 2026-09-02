@@ -125,6 +125,7 @@ async function cargarNegocios() {
           <span class="sa-badge">${n.activo ? "Activo" : "Inactivo"}</span>
           <div class="sa-actions">
             <button type="button" onclick="editarNegocio('${n.id}')">✏️ Editar</button>
+            <button type="button" onclick="copiarAgendaPublica('${n.id}')">🔗 Copiar agenda</button>
             <button type="button" onclick="toggleNegocio('${n.id}', ${!!n.activo})">${n.activo ? "⏸️ Desactivar" : "▶️ Activar"}</button>
             <button type="button" onclick="eliminarNegocio('${n.id}')">🗑️ Eliminar</button>
           </div>
@@ -145,6 +146,33 @@ async function cargarNegocios() {
     await llenarProfesionalesHorario();
   }
 }
+
+async function copiarAgendaPublica(negocioId) {
+  const url = new URL("/", window.location.origin);
+  url.searchParams.set("negocio", negocioId);
+  const liga = url.toString();
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(liga);
+    } else {
+      const area = document.createElement("textarea");
+      area.value = liga;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+
+    msg("Liga de agenda pública copiada ✓");
+  } catch (error) {
+    window.prompt("Copia esta liga de agenda pública:", liga);
+  }
+}
+
 
 function rellenarNegocios(sel, todos = false) {
   if (!sel) return;
