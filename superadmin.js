@@ -120,7 +120,7 @@ async function cargarNegocios() {
           <h4>${AR.escape(n.nombre)}</h4>
           <span class="sa-badge">${n.id}</span>
           <div class="sa-actions">
-            <button type="button" onclick="editarNegocio('${n.id}', JSON.stringify(n.nombre).replaceAll('\"','&quot;'))">✏️ Editar</button>
+            <button type="button" onclick="editarNegocio('${n.id}')">✏️ Editar</button>
             <button type="button" onclick="eliminarNegocio('${n.id}')">🗑️ Eliminar</button>
           </div>
         </div>
