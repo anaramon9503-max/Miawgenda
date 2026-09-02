@@ -257,10 +257,10 @@ async function cargarMiHorario() {
     </div>
   `;
 
-  // Usamos la vista pública de horarios para consulta de solo lectura.
+  // Consultamos la misma tabla que usa Citas para respetar los horarios reales asignados.
   const { data: horarios, error } =
     await db
-      .from("horarios_publicos")
+      .from("horarios")
       .select(`
         id,
         profesional_id,
