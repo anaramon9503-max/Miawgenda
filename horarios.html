@@ -196,6 +196,10 @@
       color:#fff;
     }
 
+    .nav-profesional-ar{
+      grid-template-columns:repeat(3,1fr);
+    }
+
     .oculto{
       display:none !important;
     }
@@ -229,7 +233,7 @@
 
     <div id="mensaje" class="mensaje oculto"></div>
 
-    <section class="horarios-form">
+    <section id="seccionAdminHorarios" class="horarios-form">
       <h3>Agregar horario</h3>
       <p class="ayuda">
         Selecciona el profesional, servicio, día y la hora disponible.
@@ -265,7 +269,7 @@
       </button>
     </section>
 
-    <section class="horarios-form">
+    <section id="seccionListaAdmin" class="horarios-form">
       <h3>Horarios asignados</h3>
       <p class="ayuda">
         Se mostrarán los horarios del profesional y servicio seleccionados.
@@ -278,34 +282,32 @@
       </div>
     </section>
 
+    <section id="seccionProfesionalHorarios" class="horarios-form oculto">
+      <h3>Mi horario 💜</h3>
+      <p class="ayuda">
+        Aquí puedes consultar los horarios que tienes asignados.
+      </p>
+
+      <div id="listaMiHorario" class="lista-horarios">
+        <div class="cargando">Cargando tu horario...</div>
+      </div>
+    </section>
+
   </div>
 </div>
 
-<nav class="nav-inferior-ar">
-  <a href="dashboard.html">
-    <span class="nav-icono">🏠</span>
-    Inicio
-  </a>
+<nav id="navAdmin" class="nav-inferior-ar oculto">
+  <a href="dashboard.html"><span class="nav-icono">🏠</span>Inicio</a>
+  <a href="panel.html"><span class="nav-icono">📅</span>Citas</a>
+  <a href="profesionales.html"><span class="nav-icono">👩‍⚕️</span>Profes.</a>
+  <a href="servicios.html"><span class="nav-icono">🛍️</span>Servicios</a>
+  <a href="horarios.html" class="activo"><span class="nav-icono">🕐</span>Horarios</a>
+</nav>
 
-  <a href="panel.html">
-    <span class="nav-icono">📅</span>
-    Citas
-  </a>
-
-  <a href="profesionales.html">
-    <span class="nav-icono">👩‍⚕️</span>
-    Profes.
-  </a>
-
-  <a href="servicios.html">
-    <span class="nav-icono">🛍️</span>
-    Servicios
-  </a>
-
-  <a href="horarios.html" class="activo">
-    <span class="nav-icono">🕐</span>
-    Horarios
-  </a>
+<nav id="navProfesional" class="nav-inferior-ar nav-profesional-ar oculto">
+  <a href="dashboard.html"><span class="nav-icono">🏠</span>Inicio</a>
+  <a href="panel.html"><span class="nav-icono">📅</span>Mis citas</a>
+  <a href="horarios.html" class="activo"><span class="nav-icono">🕐</span>Mi horario</a>
 </nav>
 
 <script src="horarios.js?v=4"></script>

@@ -25,6 +25,16 @@ let negocioActualId = null;
 let usuarioActual = null;
 let profesionales = [];
 let serviciosAsignados = [];
+let esAdmin = false;
+let esProfesional = false;
+let profesionalActualId = null;
+
+const seccionAdminHorarios = $("seccionAdminHorarios");
+const seccionListaAdmin = $("seccionListaAdmin");
+const seccionProfesionalHorarios = $("seccionProfesionalHorarios");
+const listaMiHorario = $("listaMiHorario");
+const navAdmin = $("navAdmin");
+const navProfesional = $("navProfesional");
 
 const dias = {
   1: "Lunes",
@@ -93,13 +103,13 @@ async function iniciar() {
     usuarioActual.email || "";
 
   const membresia =
-    await obtenerMembresiaAdmin(
+    await obtenerMembresia(
       usuarioActual.id
     );
 
   if (!membresia) {
     mostrarError(
-      "Esta sección es solo para administradores del negocio."
+      "No encontramos una membresía activa para esta cuenta."
     );
 
     setTimeout(() => {
@@ -113,11 +123,52 @@ async function iniciar() {
   negocioActualId =
     membresia.negocio_id;
 
+  esAdmin =
+    membresia.es_admin === true;
+
+  esProfesional =
+    membresia.es_profesional === true;
+
   await cargarNombreNegocio();
-  await cargarProfesionales();
+
+  if (esAdmin) {
+    navAdmin?.classList.remove("oculto");
+    seccionAdminHorarios?.classList.remove("oculto");
+    seccionListaAdmin?.classList.remove("oculto");
+    seccionProfesionalHorarios?.classList.add("oculto");
+
+    await cargarProfesionales();
+    return;
+  }
+
+  if (esProfesional) {
+    profesionalActualId =
+      await obtenerProfesionalActual(
+        usuarioActual.id
+      );
+
+    if (!profesionalActualId) {
+      mostrarError(
+        "Tu cuenta no está vinculada a un profesional activo."
+      );
+      return;
+    }
+
+    navProfesional?.classList.remove("oculto");
+    seccionAdminHorarios?.classList.add("oculto");
+    seccionListaAdmin?.classList.add("oculto");
+    seccionProfesionalHorarios?.classList.remove("oculto");
+
+    await cargarMiHorario();
+    return;
+  }
+
+  mostrarError(
+    "Esta cuenta no tiene permisos para consultar horarios."
+  );
 }
 
-async function obtenerMembresiaAdmin(
+async function obtenerMembresia(
   usuarioId
 ) {
   const { data, error } =
@@ -126,6 +177,7 @@ async function obtenerMembresiaAdmin(
       .select(`
         negocio_id,
         es_admin,
+        es_profesional,
         activo
       `)
       .eq(
@@ -133,7 +185,6 @@ async function obtenerMembresiaAdmin(
         usuarioId
       )
       .eq("activo", true)
-      .eq("es_admin", true)
       .limit(1);
 
   if (error) {
@@ -145,6 +196,35 @@ async function obtenerMembresiaAdmin(
   }
 
   return data?.[0] || null;
+}
+
+async function obtenerProfesionalActual(
+  usuarioId
+) {
+  const { data, error } =
+    await db
+      .from("profesionales")
+      .select("id")
+      .eq(
+        "usuario_id",
+        usuarioId
+      )
+      .eq(
+        "negocio_id",
+        negocioActualId
+      )
+      .eq("activo", true)
+      .maybeSingle();
+
+  if (error) {
+    console.error(
+      "Error profesional actual:",
+      error
+    );
+    return null;
+  }
+
+  return data?.id || null;
 }
 
 async function cargarNombreNegocio() {
@@ -167,6 +247,143 @@ async function cargarNombreNegocio() {
 
   nombreNegocio.textContent =
     data.nombre || "Mi negocio";
+}
+
+
+async function cargarMiHorario() {
+  listaMiHorario.innerHTML = `
+    <div class="cargando">
+      Cargando tu horario...
+    </div>
+  `;
+
+  // Usamos la vista pública de horarios para consulta de solo lectura.
+  const { data: horarios, error } =
+    await db
+      .from("horarios_publicos")
+      .select(`
+        id,
+        profesional_id,
+        servicio_id,
+        dia_semana,
+        hora_slot,
+        hora_inicio,
+        hora_fin,
+        activo
+      `)
+      .eq(
+        "profesional_id",
+        profesionalActualId
+      )
+      .eq(
+        "activo",
+        true
+      )
+      .order(
+        "dia_semana",
+        { ascending: true }
+      )
+      .order(
+        "hora_inicio",
+        { ascending: true }
+      );
+
+  if (error) {
+    console.error(
+      "Error mi horario:",
+      error
+    );
+
+    listaMiHorario.innerHTML = `
+      <div class="sin-resultados">
+        No fue posible cargar tu horario.
+      </div>
+    `;
+
+    mostrarError(
+      "No fue posible cargar tu horario."
+    );
+    return;
+  }
+
+  if (!horarios?.length) {
+    listaMiHorario.innerHTML = `
+      <div class="sin-resultados">
+        Aún no tienes horarios asignados.
+      </div>
+    `;
+    return;
+  }
+
+  const idsServicios = [
+    ...new Set(
+      horarios
+        .map(h => h.servicio_id)
+        .filter(Boolean)
+    )
+  ];
+
+  let mapaServicios = {};
+
+  if (idsServicios.length) {
+    const { data: servicios, error: errorServicios } =
+      await db
+        .from("servicios")
+        .select("id,nombre")
+        .in("id", idsServicios);
+
+    if (!errorServicios) {
+      mapaServicios =
+        Object.fromEntries(
+          (servicios || []).map(
+            s => [s.id, s.nombre]
+          )
+        );
+    }
+  }
+
+  listaMiHorario.innerHTML = "";
+
+  for (const horario of horarios) {
+    const inicio =
+      horaCorta(
+        horario.hora_inicio ||
+        horario.hora_slot
+      );
+
+    const fin =
+      horaCorta(
+        horario.hora_fin
+      );
+
+    const servicio =
+      mapaServicios[
+        horario.servicio_id
+      ] || "Servicio";
+
+    const card =
+      document.createElement("div");
+
+    card.className =
+      "horario-card";
+
+    card.innerHTML = `
+      <strong>
+        ${dias[horario.dia_semana] || "Día"}
+        · ${inicio}${fin ? ` - ${fin}` : ""}
+      </strong>
+
+      <div class="horario-meta">
+        ${escapar(servicio)}
+      </div>
+
+      <div class="horario-meta">
+        Activo
+      </div>
+    `;
+
+    listaMiHorario.appendChild(card);
+  }
 }
 
 async function cargarProfesionales() {
@@ -874,3 +1091,17 @@ window.eliminarHorario =
   eliminarHorario;
 
 iniciar();
+
+function horaCorta(hora) {
+  if (!hora) return "";
+  return String(hora).slice(0, 5);
+}
+
+function escapar(texto = "") {
+  return String(texto)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
