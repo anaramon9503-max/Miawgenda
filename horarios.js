@@ -35,6 +35,13 @@ const seccionProfesionalHorarios = $("seccionProfesionalHorarios");
 const listaMiHorario = $("listaMiHorario");
 const navAdmin = $("navAdmin");
 const navProfesional = $("navProfesional");
+const pantallaCargaHorarios = $("pantallaCargaHorarios");
+const appHorarios = $("appHorarios");
+
+function mostrarAplicacionHorarios() {
+  pantallaCargaHorarios?.classList.add("oculto");
+  appHorarios?.classList.remove("app-horarios-inicial");
+}
 
 const dias = {
   1: "Lunes",
@@ -138,6 +145,7 @@ async function iniciar() {
     seccionProfesionalHorarios?.classList.add("oculto");
 
     await cargarProfesionales();
+    mostrarAplicacionHorarios();
     return;
   }
 
@@ -151,6 +159,7 @@ async function iniciar() {
       mostrarError(
         "Tu cuenta no está vinculada a un profesional activo."
       );
+      mostrarAplicacionHorarios();
       return;
     }
 
@@ -160,12 +169,14 @@ async function iniciar() {
     seccionProfesionalHorarios?.classList.remove("oculto");
 
     await cargarMiHorario();
+    mostrarAplicacionHorarios();
     return;
   }
 
   mostrarError(
     "Esta cuenta no tiene permisos para consultar horarios."
   );
+  mostrarAplicacionHorarios();
 }
 
 async function obtenerMembresia(
@@ -257,10 +268,10 @@ async function cargarMiHorario() {
     </div>
   `;
 
-  // Consultamos la misma tabla que usa Citas para respetar los horarios reales asignados.
+  // Usamos la vista pública de horarios para consulta de solo lectura.
   const { data: horarios, error } =
     await db
-      .from("horarios")
+      .from("horarios_publicos")
       .select(`
         id,
         profesional_id,

@@ -203,12 +203,50 @@
     .oculto{
       display:none !important;
     }
+
+    .pantalla-carga-horarios{
+      position:fixed;
+      inset:0;
+      z-index:5000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#f7f3fa;
+    }
+
+    .carga-horarios-card{
+      min-width:220px;
+      padding:28px 24px;
+      border:1px solid #e8e1ec;
+      border-radius:24px;
+      background:#fff;
+      text-align:center;
+      box-shadow:0 14px 40px rgba(65,48,76,.10);
+      color:#5f4c68;
+    }
+
+    .carga-horarios-icono{
+      display:block;
+      margin-bottom:10px;
+      font-size:30px;
+    }
+
+    .app-horarios-inicial{
+      visibility:hidden;
+    }
   </style>
 </head>
 
 <body>
 
-<div class="contenedor">
+<div id="pantallaCargaHorarios" class="pantalla-carga-horarios">
+  <div class="carga-horarios-card">
+    <span class="carga-horarios-icono">💜</span>
+    Cargando tu agenda...
+  </div>
+</div>
+
+<div id="appHorarios" class="contenedor app-horarios-inicial">
 
   <div class="encabezado">
     <h1>AR Agenda</h1>
