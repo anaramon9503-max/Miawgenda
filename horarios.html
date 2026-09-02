@@ -1,231 +1,314 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+  <title>AR Agenda | Horarios</title>
 
-  <title>Horarios | AR Agenda</title>
-
-  <link
-    rel="stylesheet"
-    href="style.css"
-  >
-
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-</head>
+  <style>
+    *{box-sizing:border-box;}
 
+    body{
+      margin:0;
+      padding-bottom:105px;
+    }
+
+    .horarios-cabecera{
+      margin-bottom:18px;
+      padding:20px;
+      border:1px solid #e8e1ec;
+      border-radius:20px;
+      background:#fff;
+    }
+
+    .horarios-cabecera .mini{
+      margin:0 0 5px;
+      font-size:12px;
+      color:#81778a;
+    }
+
+    .horarios-cabecera h2{
+      margin:0;
+      color:#352d3d;
+    }
+
+    .horarios-cabecera p{
+      margin:7px 0 0;
+      color:#756b7d;
+      font-size:13px;
+    }
+
+    .horarios-form{
+      margin-top:18px;
+      padding:18px;
+      background:#fff;
+      border:1px solid #e8e1ec;
+      border-radius:20px;
+    }
+
+    .horarios-form h3{
+      margin:0 0 6px;
+      color:#352d3d;
+    }
+
+    .horarios-form .ayuda{
+      margin:0 0 15px;
+      color:#81778a;
+      font-size:13px;
+    }
+
+    .horarios-form label{
+      display:block;
+      margin:11px 0 6px;
+      font-size:12px;
+      font-weight:700;
+      color:#716779;
+    }
+
+    .horarios-form select,
+    .horarios-form input{
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid #dcd4e5;
+      background:#fff;
+      color:#322d36;
+      font-size:14px;
+    }
+
+    .btn-guardar-horario{
+      width:100%;
+      margin-top:16px;
+      border:none;
+      border-radius:13px;
+      padding:13px;
+      background:#7b55da;
+      color:#fff;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .btn-volver-dashboard,
+    .btn-cerrar-horarios{
+      width:100%;
+      margin-top:10px;
+      padding:13px;
+      border:1px solid #e0d9e4;
+      border-radius:13px;
+      background:#f3eff5;
+      color:#5d5264;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .lista-horarios{
+      display:grid;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .horario-card{
+      padding:14px;
+      border:1px solid #e8e1ec;
+      border-radius:16px;
+      background:#faf8fb;
+    }
+
+    .horario-card strong{
+      color:#493d52;
+    }
+
+    .horario-meta{
+      margin-top:5px;
+      font-size:13px;
+      color:#7d7284;
+    }
+
+    .horario-acciones{
+      display:flex;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .horario-acciones button{
+      flex:1;
+      border:none;
+      border-radius:11px;
+      padding:10px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .btn-horario-estado{
+      background:#eee8f5;
+      color:#604d70;
+    }
+
+    .btn-horario-eliminar{
+      background:#ffe3e8;
+      color:#9d3345;
+    }
+
+    .horario-inactivo{
+      opacity:.58;
+    }
+
+    .nav-inferior-ar{
+      position:fixed;
+      left:50%;
+      bottom:10px;
+      transform:translateX(-50%);
+      width:min(calc(100% - 20px),620px);
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:4px;
+      padding:8px;
+      background:rgba(255,255,255,.97);
+      border:1px solid #ddd6e2;
+      border-radius:24px;
+      box-shadow:0 10px 30px rgba(65,48,76,.12);
+      z-index:999;
+      backdrop-filter:blur(12px);
+    }
+
+    .nav-inferior-ar a{
+      min-width:0;
+      padding:9px 3px;
+      border-radius:16px;
+      text-decoration:none;
+      text-align:center;
+      color:#746a79;
+      font-size:10px;
+    }
+
+    .nav-inferior-ar .nav-icono{
+      display:block;
+      font-size:20px;
+      margin-bottom:4px;
+    }
+
+    .nav-inferior-ar a.activo{
+      background:#7b55da;
+      color:#fff;
+    }
+
+    .oculto{
+      display:none !important;
+    }
+  </style>
+</head>
 
 <body>
 
-  <div class="container">
-
-
-    <!-- ENCABEZADO -->
-
-    <header class="header">
-
-      <div>
-
-        <h1>Horarios</h1>
-
-        <p id="nombreNegocio">
-          Cargando...
-        </p>
-
-        <small id="correoUsuario"></small>
-
-      </div>
-
-    </header>
-
-
-    <!-- BOTONES SUPERIORES -->
-
-    <div class="card">
-
-      <button
-        id="btnVolver"
-        type="button"
-      >
-        ← Volver al panel
-      </button>
-
-      <button
-        id="btnCerrar"
-        type="button"
-      >
-        Cerrar sesión
-      </button>
-
-    </div>
-
-
-    <!-- MENSAJES -->
-
-    <div
-      id="mensaje"
-      class="mensaje oculto"
-    ></div>
-
-
-    <!-- CONFIGURAR HORARIO -->
-
-    <section class="card">
-
-      <h2>Agregar horario</h2>
-
-      <p>
-        Selecciona el profesional, servicio,
-        día y la hora que estará disponible.
-      </p>
-
-
-      <!-- PROFESIONAL -->
-
-      <label for="profesionalHorario">
-        Profesional
-      </label>
-
-      <select
-        id="profesionalHorario"
-        required
-      >
-
-        <option value="">
-          Selecciona un profesional
-        </option>
-
-      </select>
-
-
-      <!-- SERVICIO -->
-
-      <label for="servicioHorario">
-        Servicio
-      </label>
-
-      <select
-        id="servicioHorario"
-        required
-      >
-
-        <option value="">
-          Primero selecciona un profesional
-        </option>
-
-      </select>
-
-
-      <!-- DÍA -->
-
-      <label for="diaHorario">
-        Día
-      </label>
-
-      <select
-        id="diaHorario"
-        required
-      >
-
-        <option value="">
-          Selecciona un día
-        </option>
-
-        <option value="1">
-          Lunes
-        </option>
-
-        <option value="2">
-          Martes
-        </option>
-
-        <option value="3">
-          Miércoles
-        </option>
-
-        <option value="4">
-          Jueves
-        </option>
-
-        <option value="5">
-          Viernes
-        </option>
-
-        <option value="6">
-          Sábado
-        </option>
-
-        <option value="7">
-          Domingo
-        </option>
-
-      </select>
-
-
-      <!-- HORA -->
-
-      <label for="horaSlot">
-        Hora disponible
-      </label>
-
-      <input
-        id="horaSlot"
-        type="time"
-        required
-      >
-
-
-      <!-- GUARDAR -->
-
-      <button
-        id="btnGuardarHorario"
-        type="button"
-      >
-        + Agregar horario
-      </button>
-
-    </section>
-
-
-    <!-- HORARIOS CREADOS -->
-
-    <section class="card">
-
-      <h2>Horarios asignados</h2>
-
-      <p>
-        Aquí aparecerán las horas que
-        agregues para el profesional y
-        servicio seleccionados.
-      </p>
-
-
-      <div id="listaHorarios">
-
-        <div class="sin-resultados">
-
-          Selecciona un profesional
-          y un servicio.
-
-        </div>
-
-      </div>
-
-    </section>
-
-
+<div class="contenedor">
+
+  <div class="encabezado">
+    <h1>AR Agenda</h1>
+    <p>Horarios</p>
   </div>
 
+  <div class="tarjeta">
 
-  <script src="horarios.js?v=3"></script>
+    <div class="horarios-cabecera">
+      <p class="mini">Negocio</p>
+      <h2 id="nombreNegocio">Cargando...</h2>
+      <p>Sesión: <span id="correoUsuario"></span></p>
+
+      <button id="btnVolver" type="button" class="btn-volver-dashboard">
+        ← Volver al Dashboard
+      </button>
+
+      <button id="btnCerrar" type="button" class="btn-cerrar-horarios">
+        Cerrar sesión
+      </button>
+    </div>
+
+    <div id="mensaje" class="mensaje oculto"></div>
+
+    <section class="horarios-form">
+      <h3>Agregar horario</h3>
+      <p class="ayuda">
+        Selecciona el profesional, servicio, día y la hora disponible.
+      </p>
+
+      <label for="profesionalHorario">Profesional</label>
+      <select id="profesionalHorario">
+        <option value="">Selecciona un profesional</option>
+      </select>
+
+      <label for="servicioHorario">Servicio</label>
+      <select id="servicioHorario" disabled>
+        <option value="">Primero selecciona un profesional</option>
+      </select>
+
+      <label for="diaHorario">Día</label>
+      <select id="diaHorario">
+        <option value="">Selecciona un día</option>
+        <option value="1">Lunes</option>
+        <option value="2">Martes</option>
+        <option value="3">Miércoles</option>
+        <option value="4">Jueves</option>
+        <option value="5">Viernes</option>
+        <option value="6">Sábado</option>
+        <option value="7">Domingo</option>
+      </select>
+
+      <label for="horaSlot">Hora disponible</label>
+      <input id="horaSlot" type="time">
+
+      <button id="btnGuardarHorario" type="button" class="btn-guardar-horario">
+        + Agregar horario
+      </button>
+    </section>
+
+    <section class="horarios-form">
+      <h3>Horarios asignados</h3>
+      <p class="ayuda">
+        Se mostrarán los horarios del profesional y servicio seleccionados.
+      </p>
+
+      <div id="listaHorarios" class="lista-horarios">
+        <div class="sin-resultados">
+          Selecciona un profesional y un servicio.
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<nav class="nav-inferior-ar">
+  <a href="dashboard.html">
+    <span class="nav-icono">🏠</span>
+    Inicio
+  </a>
+
+  <a href="panel.html">
+    <span class="nav-icono">📅</span>
+    Citas
+  </a>
+
+  <a href="profesionales.html">
+    <span class="nav-icono">👩‍⚕️</span>
+    Profes.
+  </a>
+
+  <a href="servicios.html">
+    <span class="nav-icono">🛍️</span>
+    Servicios
+  </a>
+
+  <a href="horarios.html" class="activo">
+    <span class="nav-icono">🕐</span>
+    Horarios
+  </a>
+</nav>
+
+<script src="horarios.js?v=4"></script>
 
 </body>
-
 </html>
