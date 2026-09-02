@@ -108,6 +108,7 @@ let esAdmin = false;
 let profesionalesActuales = [];
 let serviciosActuales = [];
 let citasActuales = [];
+let filtroEstadoActual = "proximas";
 
 
 // =====================================================
@@ -657,8 +658,9 @@ async function cargarCitas() {
     </div>
   `;
 
-  const hoy =
-    fechaLocalHoy();
+  asegurarFiltrosEstado();
+
+  const hoy = fechaLocalHoy();
 
   let consulta =
     db
@@ -676,64 +678,42 @@ async function cargarCitas() {
         hora_fin,
         estado
       `)
-      .eq(
-        "negocio_id",
-        negocioActualId
-      )
-      .gte(
-        "fecha",
-        hoy
-      )
-      .order(
-        "fecha",
-        { ascending: true }
-      )
-      .order(
-        "hora_inicio",
-        { ascending: true }
-      );
+      .eq("negocio_id", negocioActualId)
+      .order("fecha", { ascending: true })
+      .order("hora_inicio", { ascending: true });
 
-  if (
-    esProfesional &&
-    !esAdmin &&
-    profesionalActualId
-  ) {
-    consulta =
-      consulta.eq(
-        "profesional_id",
-        profesionalActualId
-      );
+  // Próximas, pendientes y confirmadas solo muestran hoy en adelante.
+  if (["proximas", "pendiente", "confirmada"].includes(filtroEstadoActual)) {
+    consulta = consulta.gte("fecha", hoy);
   }
 
-  if (
-    esAdmin &&
-    filtroProfesional?.value
-  ) {
-    consulta =
-      consulta.eq(
-        "profesional_id",
-        filtroProfesional.value
-      );
+  if (filtroEstadoActual === "proximas") {
+    consulta = consulta.in("estado", ["pendiente", "confirmada"]);
+  } else if (filtroEstadoActual !== "todas") {
+    consulta = consulta.eq("estado", filtroEstadoActual);
   }
 
-  const { data, error } =
-    await consulta;
+  if (esProfesional && !esAdmin && profesionalActualId) {
+    consulta = consulta.eq("profesional_id", profesionalActualId);
+  }
+
+  if (esAdmin && filtroProfesional?.value) {
+    consulta = consulta.eq("profesional_id", filtroProfesional.value);
+  }
+
+  const { data, error } = await consulta;
 
   if (error) {
-
     console.error(error);
-
     listaCitas.innerHTML = `
       <div class="sin-citas">
         No fue posible cargar las citas.
       </div>
     `;
-
     return;
   }
 
-  citasActuales =
-    data || [];
+  citasActuales = data || [];
 
   if (contadorCitas) {
     contadorCitas.textContent =
@@ -743,74 +723,43 @@ async function cargarCitas() {
   }
 
   if (!citasActuales.length) {
-
     listaCitas.innerHTML = `
       <div class="sin-citas">
-        No hay próximas citas.
+        No hay citas en esta sección.
       </div>
     `;
-
     return;
   }
 
   await cargarServiciosBase();
 
-  const mapaProfesionales =
-    new Map(
-      profesionalesActuales.map(
-        p => [
-          p.id,
-          p.nombre
-        ]
-      )
-    );
+  const mapaProfesionales = new Map(
+    profesionalesActuales.map(p => [p.id, p.nombre])
+  );
 
-  const mapaServicios =
-    new Map(
-      serviciosActuales.map(
-        s => [
-          s.id,
-          s.nombre
-        ]
-      )
-    );
+  const mapaServicios = new Map(
+    serviciosActuales.map(s => [s.id, s.nombre])
+  );
 
   listaCitas.innerHTML = "";
 
-  for (
-    const cita
-    of citasActuales
-  ) {
-
+  for (const cita of citasActuales) {
     const nombreProfesional =
-      mapaProfesionales.get(
-        cita.profesional_id
-      ) || "Sin profesional";
+      mapaProfesionales.get(cita.profesional_id) || "Sin profesional";
 
     const nombreServicio =
-      mapaServicios.get(
-        cita.servicio_id
-      ) || "Sin servicio";
+      mapaServicios.get(cita.servicio_id) || "Sin servicio";
 
-    const tarjeta =
-      document.createElement(
-        "div"
-      );
-
-    tarjeta.className =
-      "cita";
+    const tarjeta = document.createElement("div");
+    tarjeta.className = `cita cita-${cita.estado}`;
 
     tarjeta.innerHTML = `
-
       <div class="fecha">
         📅 ${formatearFecha(cita.fecha)}
       </div>
 
       <div class="hora">
-        🕐
-        ${horaCorta(cita.hora_inicio)}
-        -
-        ${horaCorta(cita.hora_fin)}
+        🕐 ${horaCorta(cita.hora_inicio)} - ${horaCorta(cita.hora_fin)}
       </div>
 
       <div class="dato">
@@ -833,61 +782,169 @@ async function cargarCitas() {
         ${escapar(nombreProfesional)}
       </div>
 
-      <div class="estado">
+      <div class="estado estado-${cita.estado}">
         ${nombreEstado(cita.estado)}
       </div>
 
       <div class="acciones">
-
-        <button
-          type="button"
-          onclick="cambiarEstado('${cita.id}','confirmada')"
-        >
-          ✓ Confirmar
-        </button>
-
-        <button
-          type="button"
-          onclick="abrirReagendar('${cita.id}')"
-        >
-          🔄 Reagendar
-        </button>
-
-        <button
-          type="button"
-          onclick="cambiarEstado('${cita.id}','atendida')"
-        >
-          ✓ Atendida
-        </button>
-
-        <button
-          type="button"
-          onclick="cambiarEstado('${cita.id}','no_asistio')"
-        >
-          No asistió
-        </button>
-
-        <button
-          type="button"
-          onclick="cambiarEstado('${cita.id}','cancelada')"
-        >
-          ✕ Cancelar
-        </button>
-
-        <button
-          type="button"
-          onclick="eliminarCita('${cita.id}')"
-        >
-          🗑️ Eliminar
-        </button>
-
+        ${botonesPorEstado(cita)}
       </div>
     `;
 
-    listaCitas.appendChild(
-      tarjeta
-    );
+    listaCitas.appendChild(tarjeta);
   }
+}
+
+
+// =====================================================
+// FILTROS DE ESTADO
+// =====================================================
+
+function asegurarFiltrosEstado() {
+  if (document.getElementById("filtrosEstadoCitas")) {
+    actualizarFiltroEstadoVisual();
+    return;
+  }
+
+  const barra = document.createElement("div");
+  barra.id = "filtrosEstadoCitas";
+  barra.className = "filtros-estado-citas";
+  barra.innerHTML = `
+    <button type="button" data-estado="proximas">Próximas</button>
+    <button type="button" data-estado="pendiente">Pendientes</button>
+    <button type="button" data-estado="confirmada">Confirmadas</button>
+    <button type="button" data-estado="atendida">Atendidas</button>
+    <button type="button" data-estado="cancelada">Canceladas</button>
+    <button type="button" data-estado="no_asistio">No asistió</button>
+    <button type="button" data-estado="todas">Todas</button>
+  `;
+
+  const referencia = contadorCitas || listaCitas;
+  referencia.parentNode.insertBefore(barra, referencia);
+
+  barra.addEventListener("click", async e => {
+    const boton = e.target.closest("button[data-estado]");
+    if (!boton) return;
+    filtroEstadoActual = boton.dataset.estado;
+    actualizarFiltroEstadoVisual();
+    await cargarCitas();
+  });
+
+  agregarEstilosCitas();
+  actualizarFiltroEstadoVisual();
+}
+
+function actualizarFiltroEstadoVisual() {
+  document
+    .querySelectorAll("#filtrosEstadoCitas button[data-estado]")
+    .forEach(boton => {
+      boton.classList.toggle(
+        "activo",
+        boton.dataset.estado === filtroEstadoActual
+      );
+    });
+}
+
+function botonesPorEstado(cita) {
+  const id = cita.id;
+
+  const confirmar = `
+    <button type="button" onclick="cambiarEstado('${id}','confirmada')">
+      ✓ Confirmar
+    </button>`;
+
+  const reagendar = `
+    <button type="button" onclick="abrirReagendar('${id}')">
+      🔄 Reagendar
+    </button>`;
+
+  const atendida = `
+    <button type="button" onclick="cambiarEstado('${id}','atendida')">
+      ✓ Atendida
+    </button>`;
+
+  const noAsistio = `
+    <button type="button" onclick="cambiarEstado('${id}','no_asistio')">
+      No asistió
+    </button>`;
+
+  const cancelar = `
+    <button type="button" onclick="cambiarEstado('${id}','cancelada')">
+      ✕ Cancelar
+    </button>`;
+
+  const eliminar = `
+    <button type="button" onclick="eliminarCita('${id}')">
+      🗑️ Eliminar
+    </button>`;
+
+  switch (cita.estado) {
+    case "pendiente":
+      return confirmar + reagendar + cancelar + eliminar;
+
+    case "confirmada":
+      return reagendar + atendida + noAsistio + cancelar;
+
+    case "cancelada":
+      return reagendar + eliminar;
+
+    case "atendida":
+      return "";
+
+    case "no_asistio":
+      return reagendar + eliminar;
+
+    default:
+      return reagendar + eliminar;
+  }
+}
+
+function agregarEstilosCitas() {
+  if (document.getElementById("estilosEstadosCitas")) return;
+
+  const style = document.createElement("style");
+  style.id = "estilosEstadosCitas";
+  style.textContent = `
+    .filtros-estado-citas {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 2px 14px;
+      margin: 0 0 8px;
+      scrollbar-width: none;
+    }
+    .filtros-estado-citas::-webkit-scrollbar { display: none; }
+    .filtros-estado-citas button {
+      flex: 0 0 auto;
+      border: 1px solid #e6e0ee;
+      background: #f7f5f9;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font: inherit;
+      cursor: pointer;
+    }
+    .filtros-estado-citas button.activo {
+      background: #7c4dde;
+      color: white;
+      border-color: #7c4dde;
+    }
+    .estado {
+      display: inline-block;
+      padding: 8px 14px;
+      border-radius: 999px;
+    }
+    .estado-pendiente { background: #fff3c4; color: #795b00; }
+    .estado-confirmada { background: #eee4ff; color: #5f36aa; }
+    .estado-atendida { background: #dff4e7; color: #256b3d; }
+    .estado-cancelada { background: #ffe0e5; color: #a22d42; }
+    .estado-no_asistio { background: #e5e5e8; color: #4d4d55; }
+    .cita-cancelada { border-left: 4px solid #d85b70; }
+    .cita-atendida { border-left: 4px solid #63a979; }
+    .cita-confirmada { border-left: 4px solid #8b63d6; }
+    .cita-pendiente { border-left: 4px solid #d6b34c; }
+    .cita-no_asistio { border-left: 4px solid #777780; }
+  `;
+  document.head.appendChild(style);
 }
 
 
@@ -1431,7 +1488,10 @@ async function guardarCita() {
               horaInicio + ":00",
 
             hora_fin:
-              horaFin + ":00"
+              horaFin + ":00",
+
+            estado:
+              estadoAlReagendar(idEditando)
           })
           .eq(
             "id",
@@ -1687,6 +1747,16 @@ async function abrirReagendar(
 
 window.abrirReagendar =
   abrirReagendar;
+
+
+function estadoAlReagendar(citaId) {
+  const cita = citasActuales.find(c => c.id === citaId);
+  if (!cita) return "pendiente";
+  if (["cancelada", "no_asistio"].includes(cita.estado)) {
+    return "pendiente";
+  }
+  return cita.estado || "pendiente";
+}
 
 
 // =====================================================
