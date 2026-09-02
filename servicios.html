@@ -294,7 +294,7 @@
     <section class="servicios-form">
       <h3 id="tituloFormularioServicio">Agregar servicio</h3>
       <p class="ayuda">
-        Configura el nombre, duración y precio del servicio.
+        Configura el nombre, duración, modalidad y precio del servicio.
       </p>
 
       <input id="servicioEditandoId" type="hidden">
@@ -311,6 +311,13 @@
         id="servicioDescripcion"
         placeholder="Opcional"
       ></textarea>
+
+
+      <label for="servicioModalidad">Modalidad</label>
+      <select id="servicioModalidad" style="width:100%;padding:12px;border-radius:12px;border:1px solid #dcd4e5;background:#fff;color:#322d36;font-size:14px;">
+        <option value="presencial">📍 Presencial</option>
+        <option value="en_linea">💻 En línea</option>
+      </select>
 
       <div class="servicios-grid">
         <div>
