@@ -9,34 +9,234 @@
   <link rel="stylesheet" href="style.css">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+    }
+
+    /* =========================================
+       HERRAMIENTAS DEL PANEL
+    ========================================= */
+
+    .panel-herramientas{
+      margin:22px 0 18px;
+      padding:16px;
+      background:#faf8ff;
+      border:1px solid #e1d9ec;
+      border-radius:18px;
+    }
+
+    .panel-herramientas h3{
+      margin:0 0 14px;
+      font-size:16px;
+      color:#352d3d;
+    }
+
+    .herramientas-grid{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:10px;
+      align-items:end;
+    }
+
+    .campo-filtro label{
+      display:block;
+      margin-bottom:6px;
+      font-size:12px;
+      font-weight:700;
+      color:#716779;
+    }
+
+    .campo-filtro select{
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid #dcd4e5;
+      background:white;
+      color:#322d36;
+      font-size:14px;
+    }
+
+    .btn-nueva-cita{
+      border:none;
+      background:#7b55da;
+      color:white;
+      border-radius:12px;
+      padding:13px 18px;
+      font-weight:700;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+
+    .btn-nueva-cita:hover{
+      background:#6e48ca;
+    }
+
+    /* =========================================
+       FORMULARIO NUEVA CITA / REAGENDAR
+    ========================================= */
+
+    .form-cita-panel{
+      margin:18px 0;
+      padding:18px;
+      border:1px solid #ded7e6;
+      border-radius:20px;
+      background:#fff;
+    }
+
+    .form-cita-panel h3{
+      margin:0 0 15px;
+      color:#352d3d;
+    }
+
+    .form-cita-panel label{
+      display:block;
+      margin:11px 0 5px;
+      font-size:12px;
+      font-weight:700;
+      color:#716779;
+    }
+
+    .form-cita-panel input,
+    .form-cita-panel select{
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid #dcd4e5;
+      background:#fff;
+      font-size:14px;
+    }
+
+    .form-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .form-botones{
+      display:flex;
+      gap:9px;
+      margin-top:17px;
+    }
+
+    .form-botones button{
+      flex:1;
+      border:none;
+      border-radius:12px;
+      padding:12px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    #btnGuardarCita{
+      background:#7b55da;
+      color:white;
+    }
+
+    #btnCancelarFormulario{
+      background:#eee9f3;
+      color:#5f5667;
+    }
+
+    /* =========================================
+       CABECERA DE CITAS
+    ========================================= */
+
+    .citas-cabecera{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-top:24px;
+      margin-bottom:12px;
+    }
+
+    .citas-cabecera .titulo-citas{
+      margin:0;
+    }
+
+    .contador-citas{
+      font-size:12px;
+      color:#817788;
+    }
+
+    .oculto{
+      display:none !important;
+    }
+
+    @media(max-width:650px){
+
+      .herramientas-grid{
+        grid-template-columns:1fr;
+      }
+
+      .btn-nueva-cita{
+        width:100%;
+      }
+
+      .form-grid{
+        grid-template-columns:1fr;
+      }
+
+      .citas-cabecera{
+        align-items:flex-start;
+        flex-direction:column;
+      }
+
+    }
+
+  </style>
 </head>
 
 <body>
 
 <div class="contenedor">
 
+  <!-- =========================================
+       ENCABEZADO
+  ========================================== -->
+
   <div class="encabezado">
+
     <h1>AR Agenda</h1>
-    <p>Panel de administración</p>
+
+    <p>
+      Panel de administración
+    </p>
+
   </div>
+
 
   <div class="tarjeta">
 
-    <!-- LOGIN -->
+    <!-- =========================================
+         LOGIN
+    ========================================== -->
+
     <div id="login">
 
-      <h2>Iniciar sesión</h2>
+      <h2>
+        Iniciar sesión
+      </h2>
 
       <input
         type="email"
         id="email"
         placeholder="Correo electrónico"
+        autocomplete="email"
       >
 
       <input
         type="password"
         id="password"
         placeholder="Contraseña"
+        autocomplete="current-password"
       >
 
       <button id="btnLogin">
@@ -46,10 +246,18 @@
     </div>
 
 
-    <!-- PANEL -->
-    <div id="panel" class="oculto">
+    <!-- =========================================
+         PANEL
+    ========================================== -->
+
+    <div
+      id="panel"
+      class="oculto"
+    >
 
       <div class="barra">
+
+        <!-- NEGOCIO -->
 
         <div class="negocio">
 
@@ -66,18 +274,49 @@
 
         </div>
 
-        <h2>Mis citas 💜</h2>
 
-        <a href="superadmin.html" style="text-decoration:none;">
-          <button type="button" class="cerrar" style="width:100%;padding:15px;margin:10px 0;">
+        <!-- TÍTULO -->
+
+        <h2>
+          Mis citas 💜
+        </h2>
+
+
+        <!-- SÚPER ADMIN -->
+
+        <a
+          id="accesoSuperAdmin"
+          href="superadmin.html"
+          style="text-decoration:none;"
+        >
+
+          <button
+            type="button"
+            class="cerrar"
+            style="
+              width:100%;
+              padding:15px;
+              margin:10px 0;
+            "
+          >
             👑 Súper Admin
           </button>
+
         </a>
 
+
+        <!-- CORREO -->
+
         <div class="correo">
+
           Sesión:
+
           <span id="correoUsuario"></span>
+
         </div>
+
+
+        <!-- CERRAR SESIÓN -->
 
         <button
           id="btnCerrar"
@@ -86,10 +325,15 @@
           Cerrar sesión
         </button>
 
+
+        <!-- SERVICIOS -->
+
         <a
+          id="accesoServicios"
           href="servicios.html"
           style="text-decoration:none;"
         >
+
           <button
             type="button"
             class="cerrar"
@@ -101,14 +345,230 @@
           >
             🛍️ Administrar servicios
           </button>
+
         </a>
 
       </div>
 
 
-      <h2 class="titulo-citas">
-        Próximas citas
-      </h2>
+      <!-- =========================================
+           HERRAMIENTAS ADMIN
+      ========================================== -->
+
+      <div
+        id="adminHerramientas"
+        class="panel-herramientas"
+      >
+
+        <h3>
+          Administración de citas
+        </h3>
+
+        <div class="herramientas-grid">
+
+          <!-- FILTRO PROFESIONAL -->
+
+          <div class="campo-filtro">
+
+            <label for="filtroProfesional">
+              Profesional
+            </label>
+
+            <select id="filtroProfesional">
+
+              <option value="">
+                Todos los profesionales
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- NUEVA CITA -->
+
+          <button
+            id="btnNuevaCita"
+            type="button"
+            class="btn-nueva-cita"
+          >
+            ＋ Nueva cita
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- =========================================
+           FORMULARIO NUEVA CITA / REAGENDAR
+      ========================================== -->
+
+      <div
+        id="formularioCita"
+        class="form-cita-panel oculto"
+      >
+
+        <h3 id="tituloFormularioCita">
+          Nueva cita
+        </h3>
+
+
+        <!-- ID CITA CUANDO SE REAGENDA -->
+
+        <input
+          type="hidden"
+          id="citaEditandoId"
+        >
+
+
+        <!-- PACIENTE -->
+
+        <label for="citaPaciente">
+          Nombre del paciente
+        </label>
+
+        <input
+          id="citaPaciente"
+          type="text"
+          placeholder="Nombre completo"
+        >
+
+
+        <!-- TELÉFONO -->
+
+        <label for="citaTelefono">
+          Teléfono
+        </label>
+
+        <input
+          id="citaTelefono"
+          type="tel"
+          placeholder="Teléfono del paciente"
+        >
+
+
+        <!-- EMAIL -->
+
+        <label for="citaEmail">
+          Correo electrónico
+        </label>
+
+        <input
+          id="citaEmail"
+          type="email"
+          placeholder="Opcional"
+        >
+
+
+        <!-- PROFESIONAL -->
+
+        <label for="citaProfesional">
+          Profesional
+        </label>
+
+        <select id="citaProfesional">
+
+          <option value="">
+            Selecciona un profesional
+          </option>
+
+        </select>
+
+
+        <!-- SERVICIO -->
+
+        <label for="citaServicio">
+          Servicio
+        </label>
+
+        <select id="citaServicio">
+
+          <option value="">
+            Selecciona un servicio
+          </option>
+
+        </select>
+
+
+        <!-- FECHA / HORA -->
+
+        <div class="form-grid">
+
+          <div>
+
+            <label for="citaFecha">
+              Fecha
+            </label>
+
+            <input
+              id="citaFecha"
+              type="date"
+            >
+
+          </div>
+
+
+          <div>
+
+            <label for="citaHora">
+              Hora
+            </label>
+
+            <select id="citaHora">
+
+              <option value="">
+                Selecciona un horario
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <!-- BOTONES -->
+
+        <div class="form-botones">
+
+          <button
+            id="btnGuardarCita"
+            type="button"
+          >
+            Guardar cita
+          </button>
+
+
+          <button
+            id="btnCancelarFormulario"
+            type="button"
+          >
+            Cancelar
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- =========================================
+           LISTADO DE CITAS
+      ========================================== -->
+
+      <div class="citas-cabecera">
+
+        <h2 class="titulo-citas">
+          Próximas citas
+        </h2>
+
+        <div
+          id="contadorCitas"
+          class="contador-citas"
+        ></div>
+
+      </div>
+
 
       <div
         id="listaCitas"
@@ -124,7 +584,10 @@
     </div>
 
 
-    <!-- MENSAJES -->
+    <!-- =========================================
+         MENSAJES
+    ========================================== -->
+
     <div
       id="mensaje"
       class="mensaje oculto"
@@ -134,6 +597,10 @@
 
 </div>
 
+
+<!-- =========================================
+     JAVASCRIPT
+========================================== -->
 
 <script src="panel.js"></script>
 
