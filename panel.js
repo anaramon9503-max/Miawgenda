@@ -101,6 +101,27 @@ const accesoServicios =
 const accesoProfesionales =
   document.getElementById("accesoProfesionales");
 
+const adminHerramientas =
+  document.getElementById("adminHerramientas");
+
+const campoFiltroProfesional =
+  document.getElementById("campoFiltroProfesional");
+
+const campoCitaProfesional =
+  document.getElementById("campoCitaProfesional");
+
+const tituloHerramientas =
+  document.getElementById("tituloHerramientas");
+
+const pantallaCargando =
+  document.getElementById("pantallaCargando");
+
+const navAdmin =
+  document.getElementById("navAdmin");
+
+const navProfesional =
+  document.getElementById("navProfesional");
+
 
 // =====================================================
 // VARIABLES
@@ -338,13 +359,12 @@ async function comprobarSuperAdmin(
 
 async function abrirPanelNormal(user) {
 
-  login.classList.add(
-    "oculto"
-  );
+  // No mostramos ninguna vista hasta saber el rol.
+  login.classList.add("oculto");
+  panel.classList.add("oculto");
 
-  panel.classList.remove(
-    "oculto"
-  );
+  navAdmin?.classList.add("oculto");
+  navProfesional?.classList.add("oculto");
 
   correoUsuario.textContent =
     user.email || "";
@@ -352,11 +372,7 @@ async function abrirPanelNormal(user) {
   nombreNegocio.textContent =
     "Cargando...";
 
-  if (accesoSuperAdmin) {
-    accesoSuperAdmin.classList.add(
-      "oculto"
-    );
-  }
+  accesoSuperAdmin?.classList.add("oculto");
 
   const membresia =
     await obtenerMembresia(
@@ -364,6 +380,9 @@ async function abrirPanelNormal(user) {
     );
 
   if (!membresia) {
+
+    pantallaCargando?.classList.add("oculto");
+    panel.classList.remove("oculto");
 
     nombreNegocio.textContent =
       "Sin negocio";
@@ -387,6 +406,8 @@ async function abrirPanelNormal(user) {
   esProfesional =
     membresia.es_profesional === true;
 
+  profesionalActualId = null;
+
   if (esProfesional) {
     profesionalActualId =
       await obtenerProfesional(
@@ -394,27 +415,44 @@ async function abrirPanelNormal(user) {
       );
   }
 
-  if (
-    accesoServicios &&
-    !esAdmin
-  ) {
-    accesoServicios.classList.add(
-      "oculto"
-    );
+  // Vista ADMIN.
+  if (esAdmin) {
+    navAdmin?.classList.remove("oculto");
+    campoFiltroProfesional?.classList.remove("oculto");
+    campoCitaProfesional?.classList.remove("oculto");
+
+    if (tituloHerramientas) {
+      tituloHerramientas.textContent =
+        "Administración de citas";
+    }
+
+    accesoServicios?.classList.remove("oculto");
+    accesoProfesionales?.classList.remove("oculto");
   }
 
-  if (
-    accesoProfesionales &&
-    !esAdmin
-  ) {
-    accesoProfesionales.classList.add(
-      "oculto"
-    );
+  // Vista PROFESIONAL (sin privilegios de admin).
+  if (esProfesional && !esAdmin) {
+    navProfesional?.classList.remove("oculto");
+
+    campoFiltroProfesional?.classList.add("oculto");
+    campoCitaProfesional?.classList.add("oculto");
+
+    if (tituloHerramientas) {
+      tituloHerramientas.textContent =
+        "Mis citas";
+    }
+
+    accesoServicios?.classList.add("oculto");
+    accesoProfesionales?.classList.add("oculto");
   }
 
   await cargarNombreNegocio();
   await cargarProfesionales();
   await cargarCitas();
+
+  // Solo ahora mostramos la pantalla correcta.
+  pantallaCargando?.classList.add("oculto");
+  panel.classList.remove("oculto");
 }
 
 
@@ -2642,6 +2680,9 @@ async function cerrarSesion() {
     "oculto"
   );
 
+  navAdmin?.classList.add("oculto");
+  navProfesional?.classList.add("oculto");
+
   login.classList.remove(
     "oculto"
   );
@@ -2660,16 +2701,23 @@ async function cerrarSesion() {
 
 async function revisarSesion() {
 
-  const { data } =
+  const { data, error } =
     await db.auth.getSession();
 
-  if (
-    data.session?.user
-  ) {
+  if (error) {
+    console.error(error);
+  }
+
+  if (data.session?.user) {
     await procesarUsuario(
       data.session.user
     );
+    return;
   }
+
+  pantallaCargando?.classList.add("oculto");
+  panel.classList.add("oculto");
+  login.classList.remove("oculto");
 }
 
 

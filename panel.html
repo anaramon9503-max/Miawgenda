@@ -209,6 +209,16 @@
   }
   .nav-inferior-ar .nav-icono{display:block;font-size:20px;margin-bottom:4px;}
   .nav-inferior-ar a.activo{background:#7b55da;color:#fff;}
+  .nav-profesional-ar{grid-template-columns:repeat(3,1fr);}
+  .pantalla-cargando{
+    min-height:58vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    color:#786d80;
+    font-size:14px;
+  }
 </style>
 
 </head>
@@ -234,11 +244,15 @@
 
   <div class="tarjeta">
 
+    <div id="pantallaCargando" class="pantalla-cargando">
+      Cargando tu agenda... 💜
+    </div>
+
     <!-- =========================================
          LOGIN
     ========================================== -->
 
-    <div id="login">
+    <div id="login" class="oculto">
 
       <h2>
         Iniciar sesión
@@ -376,7 +390,7 @@
         class="panel-herramientas"
       >
 
-        <h3>
+        <h3 id="tituloHerramientas">
           Administración de citas
         </h3>
 
@@ -384,7 +398,7 @@
 
           <!-- FILTRO PROFESIONAL -->
 
-          <div class="campo-filtro">
+          <div id="campoFiltroProfesional" class="campo-filtro">
 
             <label for="filtroProfesional">
               Profesional
@@ -479,17 +493,19 @@
 
         <!-- PROFESIONAL -->
 
-        <label for="citaProfesional">
-          Profesional
-        </label>
+        <div id="campoCitaProfesional">
+          <label for="citaProfesional">
+            Profesional
+          </label>
 
-        <select id="citaProfesional">
+          <select id="citaProfesional">
 
-          <option value="">
-            Selecciona un profesional
-          </option>
+            <option value="">
+              Selecciona un profesional
+            </option>
 
-        </select>
+          </select>
+        </div>
 
 
         <!-- SERVICIO -->
@@ -618,9 +634,21 @@
      JAVASCRIPT
 ========================================== -->
 
-<script src="panel.js"></script>
+<script src="panel.js?v=3"></script>
 
-<nav class="nav-inferior-ar"><a href="dashboard.html"><span class="nav-icono">🏠</span>Inicio</a><a href="panel.html" class="activo"><span class="nav-icono">📅</span>Citas</a><a href="profesionales.html"><span class="nav-icono">👩‍⚕️</span>Profes.</a><a href="servicios.html"><span class="nav-icono">🛍️</span>Servicios</a><a href="horarios.html"><span class="nav-icono">🕐</span>Horarios</a></nav>
+<nav id="navAdmin" class="nav-inferior-ar oculto">
+  <a href="dashboard.html"><span class="nav-icono">🏠</span>Inicio</a>
+  <a href="panel.html" class="activo"><span class="nav-icono">📅</span>Citas</a>
+  <a href="profesionales.html"><span class="nav-icono">👩‍⚕️</span>Profes.</a>
+  <a href="servicios.html"><span class="nav-icono">🛍️</span>Servicios</a>
+  <a href="horarios.html"><span class="nav-icono">🕐</span>Horarios</a>
+</nav>
+
+<nav id="navProfesional" class="nav-inferior-ar nav-profesional-ar oculto">
+  <a href="dashboard.html"><span class="nav-icono">🏠</span>Inicio</a>
+  <a href="panel.html" class="activo"><span class="nav-icono">📅</span>Mis citas</a>
+  <a href="horarios.html"><span class="nav-icono">🕐</span>Mi horario</a>
+</nav>
 
 </body>
 </html>
