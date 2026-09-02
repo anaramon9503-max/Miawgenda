@@ -950,13 +950,15 @@ async function confirmarCita() {
   }
 
   mostrarConfirmacion(datosConfirmacion);
+
+  // Después de guardar, dejamos únicamente la confirmación visible.
+  $("seccionFecha").classList.add("oculto");
+  $("seccionHorarios").classList.add("oculto");
   $("seccionDatos").classList.add("oculto");
   $("resumen").classList.add("oculto");
   $("nombreCliente").value = "";
   $("telefonoCliente").value = "";
   $("emailCliente").value = "";
-  horaSeleccionada = null;
-  await cargarHorarios();
   irA("confirmacion");
 }
 
@@ -965,7 +967,11 @@ function mostrarConfirmacion(datos) {
   const whatsapp = $("whatsappNegocio");
   if (whatsapp && !whatsapp.classList.contains("oculto")) {
     const base = whatsapp.href.split("?text=")[0];
-    const texto = `Hola, acabo de agendar una cita en ${negocioActual?.nombre || "el negocio"}: ${datos.servicio}, ${fechaBonita(datos.fecha)} a las ${horaBonita(datos.hora)}.`;
+    const modalidad = servicioSeleccionado?.modalidad === "en_linea" ? "En línea" : "Presencial";
+    const ubicacion = modalidad === "Presencial" && negocioActual?.direccion
+      ? ` Dirección: ${negocioActual.direccion}.`
+      : "";
+    const texto = `Hola 👋 Agendé una cita para ${datos.servicio} el ${fechaBonita(datos.fecha)} a las ${horaBonita(datos.hora)}. Mi nombre es ${datos.nombre}. Modalidad: ${modalidad}.${ubicacion}`;
     whatsapp.href = `${base}?text=${encodeURIComponent(texto)}`;
   }
   $("confirmacionDatos").innerHTML = `
