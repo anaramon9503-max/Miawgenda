@@ -1040,16 +1040,36 @@
     </div>
 
 
-    <div class="sa-card" style="margin-top:16px;">
-      <h3>📋 Copiar horario</h3>
-      <p style="font-size:13px;color:#81778a;">Copia todos los servicios y horarios del día origen a uno o varios días sin duplicarlos.</p>
-      <label>Día origen</label>
-      <select id="saCopiarOrigen"><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="7">Domingo</option></select>
-      <div id="saCopiarDestinos" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px 0;">
-        <label><input type="checkbox" value="1"> Lunes</label><label><input type="checkbox" value="2"> Martes</label><label><input type="checkbox" value="3"> Miércoles</label><label><input type="checkbox" value="4"> Jueves</label><label><input type="checkbox" value="5"> Viernes</label><label><input type="checkbox" value="6"> Sábado</label><label><input type="checkbox" value="7"> Domingo</label>
-      </div>
-      <button id="btnCopiarHorarioSA" type="button" class="btn-guardar">📋 Copiar horario</button>
+    <div class="sa-card" style="margin-top:16px;padding:14px 16px;">
+      <button id="btnAbrirCopiarHorarioSA" type="button" class="btn-guardar" style="width:100%;margin:0;">📋 Copiar un día</button>
+      <p style="font-size:13px;color:#81778a;text-align:center;margin:8px 0 0;">Repite servicios y horarios en otros días sin duplicarlos.</p>
     </div>
+
+    <div id="modalCopiarHorarioSA" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(28,20,35,.55);padding:18px;align-items:center;justify-content:center;">
+      <div style="width:min(430px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(33,18,45,.28);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <h3 style="margin:0;">📋 Copiar un día</h3>
+          <button id="btnCerrarCopiarHorarioSA" type="button" style="border:0;background:#f2edf5;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;">×</button>
+        </div>
+        <p style="font-size:13px;color:#81778a;margin:7px 0 14px;">Elige el día ya configurado y los días donde quieres repetirlo.</p>
+        <label>Día origen</label>
+        <select id="saCopiarOrigen"><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="7">Domingo</option></select>
+        <label style="display:block;margin-top:14px;">Copiar a</label>
+        <div id="saCopiarDestinos" class="sa-dias-copy" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:8px 0 0;">
+          <label><input type="checkbox" value="1"><span>Lunes</span></label><label><input type="checkbox" value="2"><span>Martes</span></label><label><input type="checkbox" value="3"><span>Miércoles</span></label><label><input type="checkbox" value="4"><span>Jueves</span></label><label><input type="checkbox" value="5"><span>Viernes</span></label><label><input type="checkbox" value="6"><span>Sábado</span></label><label style="grid-column:1/-1;"><input type="checkbox" value="7"><span>Domingo</span></label>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:18px;">
+          <button id="btnCancelarCopiarHorarioSA" type="button" style="flex:1;border:1px solid #d8cfe0;background:#fff;color:#655a6c;border-radius:12px;padding:12px;font-weight:700;">Cancelar</button>
+          <button id="btnCopiarHorarioSA" type="button" class="btn-guardar" style="flex:1;margin:0;">Copiar horarios</button>
+        </div>
+      </div>
+    </div>
+    <style>
+      .sa-dias-copy label{cursor:pointer;margin:0!important;}
+      .sa-dias-copy input{position:absolute;opacity:0;pointer-events:none;}
+      .sa-dias-copy span{display:flex;align-items:center;justify-content:center;min-height:44px;padding:9px 10px;border:1px solid #ded5e5;border-radius:12px;background:#faf8fb;color:#655a6c;font-weight:700;transition:.15s ease;}
+      .sa-dias-copy input:checked + span{background:#7b55da;color:#fff;border-color:#7b55da;box-shadow:0 6px 16px rgba(123,85,218,.18);}
+    </style>
 
     <div
       class="sa-card"

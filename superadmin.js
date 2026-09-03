@@ -88,6 +88,10 @@ function conectarEventos() {
   $("formServicioSA").onsubmit = crearServicio;
   $("formHorarioSA").onsubmit = crearHorario;
   if ($("btnCopiarHorarioSA")) $("btnCopiarHorarioSA").onclick = copiarHorarioSA;
+  if ($("btnAbrirCopiarHorarioSA")) $("btnAbrirCopiarHorarioSA").onclick = abrirModalCopiarHorarioSA;
+  if ($("btnCerrarCopiarHorarioSA")) $("btnCerrarCopiarHorarioSA").onclick = cerrarModalCopiarHorarioSA;
+  if ($("btnCancelarCopiarHorarioSA")) $("btnCancelarCopiarHorarioSA").onclick = cerrarModalCopiarHorarioSA;
+  if ($("modalCopiarHorarioSA")) $("modalCopiarHorarioSA").onclick = e => { if(e.target === $("modalCopiarHorarioSA")) cerrarModalCopiarHorarioSA(); };
 
   $("profNegocio").onchange = cargarProfesionales;
   $("servNegocio").onchange = cargarServicios;
@@ -982,9 +986,15 @@ async function cargarHorarios() {
   $("listaHorariosSA").innerHTML=html||'<div class="sin-resultados">Sin horarios.</div>';
 }
 
+function abrirModalCopiarHorarioSA(){
+  if(!$(`horProfesional`)?.value) return msg("Selecciona primero un profesional.",true);
+  const modal=$("modalCopiarHorarioSA"); if(modal) modal.style.display="flex";
+}
+function cerrarModalCopiarHorarioSA(){ const modal=$("modalCopiarHorarioSA"); if(modal) modal.style.display="none"; }
+
 async function copiarHorarioSA(){
   clearMsg();const profesionalId=$("horProfesional")?.value,origen=Number($("saCopiarOrigen")?.value);const destinos=[...document.querySelectorAll('#saCopiarDestinos input:checked')].map(x=>Number(x.value)).filter(x=>x!==origen);if(!profesionalId)return msg('Selecciona profesional.',true);if(!destinos.length)return msg('Selecciona al menos un día destino diferente al origen.',true);const btn=$("btnCopiarHorarioSA");btn.disabled=true;btn.textContent='Copiando...';
-  try{const {data:origenes,error:e1}=await db.from('horarios').select('servicio_id,hora_slot,hora_inicio,hora_fin').eq('profesional_id',profesionalId).eq('dia_semana',origen).eq('activo',true);if(e1)throw e1;if(!origenes?.length)return msg(`No hay horarios activos en ${dias[origen]}.`,true);const {data:existentes,error:e2}=await db.from('horarios').select('dia_semana,servicio_id,hora_slot,hora_inicio').eq('profesional_id',profesionalId).in('dia_semana',destinos).eq('activo',true);if(e2)throw e2;const norm=h=>String(h||'').slice(0,8),keys=new Set((existentes||[]).map(h=>`${h.dia_semana}|${h.servicio_id}|${norm(h.hora_slot||h.hora_inicio)}`)),inserts=[];destinos.forEach(d=>origenes.forEach(h=>{const hi=norm(h.hora_slot||h.hora_inicio),k=`${d}|${h.servicio_id}|${hi}`;if(!keys.has(k)){inserts.push({profesional_id:profesionalId,servicio_id:h.servicio_id,dia_semana:d,hora_slot:hi,hora_inicio:hi,hora_fin:h.hora_fin,activo:true});keys.add(k);}}));if(!inserts.length)return msg('Los días seleccionados ya tenían esos horarios.');const {error}=await db.from('horarios').insert(inserts);if(error)throw error;document.querySelectorAll('#saCopiarDestinos input').forEach(x=>x.checked=false);msg(`Se copiaron ${inserts.length} horarios.`);await cargarHorarios();}catch(e){msg(e?.message||'No fue posible copiar los horarios.',true);}finally{btn.disabled=false;btn.textContent='📋 Copiar horario';}
+  try{const {data:origenes,error:e1}=await db.from('horarios').select('servicio_id,hora_slot,hora_inicio,hora_fin').eq('profesional_id',profesionalId).eq('dia_semana',origen).eq('activo',true);if(e1)throw e1;if(!origenes?.length)return msg(`No hay horarios activos en ${dias[origen]}.`,true);const {data:existentes,error:e2}=await db.from('horarios').select('dia_semana,servicio_id,hora_slot,hora_inicio').eq('profesional_id',profesionalId).in('dia_semana',destinos).eq('activo',true);if(e2)throw e2;const norm=h=>String(h||'').slice(0,8),keys=new Set((existentes||[]).map(h=>`${h.dia_semana}|${h.servicio_id}|${norm(h.hora_slot||h.hora_inicio)}`)),inserts=[];destinos.forEach(d=>origenes.forEach(h=>{const hi=norm(h.hora_slot||h.hora_inicio),k=`${d}|${h.servicio_id}|${hi}`;if(!keys.has(k)){inserts.push({profesional_id:profesionalId,servicio_id:h.servicio_id,dia_semana:d,hora_slot:hi,hora_inicio:hi,hora_fin:h.hora_fin,activo:true});keys.add(k);}}));if(!inserts.length)return msg('Los días seleccionados ya tenían esos horarios.');const {error}=await db.from('horarios').insert(inserts);if(error)throw error;document.querySelectorAll('#saCopiarDestinos input').forEach(x=>x.checked=false);cerrarModalCopiarHorarioSA();msg(`Se copiaron ${inserts.length} horarios.`);await cargarHorarios();}catch(e){msg(e?.message||'No fue posible copiar los horarios.',true);}finally{btn.disabled=false;btn.textContent='📋 Copiar horario';}
 }
 
 

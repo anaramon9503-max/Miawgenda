@@ -273,19 +273,50 @@
       </button>
     </section>
 
-    <section id="seccionCopiarHorario" class="horarios-form oculto">
-      <h3>📋 Copiar horario</h3>
-      <p class="ayuda">Copia todos los servicios y horarios del día origen a uno o varios días. Los que ya existan no se duplican.</p>
-      <label for="copiarDiaOrigen">Copiar desde</label>
-      <select id="copiarDiaOrigen">
-        <option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="7">Domingo</option>
-      </select>
-      <label>Copiar a</label>
-      <div id="copiarDiasDestino" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">
-        <label><input type="checkbox" value="1"> Lunes</label><label><input type="checkbox" value="2"> Martes</label><label><input type="checkbox" value="3"> Miércoles</label><label><input type="checkbox" value="4"> Jueves</label><label><input type="checkbox" value="5"> Viernes</label><label><input type="checkbox" value="6"> Sábado</label><label><input type="checkbox" value="7"> Domingo</label>
-      </div>
-      <button id="btnCopiarHorario" type="button" class="btn-guardar-horario">📋 Copiar horario</button>
+    <section id="seccionCopiarHorario" class="horarios-form oculto" style="padding:14px 16px;">
+      <button id="btnAbrirCopiarHorario" type="button" class="btn-guardar-horario" style="margin-top:0;width:100%;">
+        📋 Copiar un día
+      </button>
+      <p class="ayuda" style="margin:8px 0 0;text-align:center;">Repite servicios y horarios en otros días sin duplicarlos.</p>
     </section>
+
+    <div id="modalCopiarHorario" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(28,20,35,.55);padding:18px;align-items:center;justify-content:center;">
+      <div style="width:min(430px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(33,18,45,.28);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;">
+          <h3 style="margin:0;">📋 Copiar un día</h3>
+          <button id="btnCerrarCopiarHorario" type="button" aria-label="Cerrar" style="border:0;background:#f2edf5;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;">×</button>
+        </div>
+        <p class="ayuda" style="margin-top:6px;">Elige el día que ya configuraste y a cuáles días quieres copiarlo.</p>
+
+        <label for="copiarDiaOrigen">Copiar desde</label>
+        <select id="copiarDiaOrigen">
+          <option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="7">Domingo</option>
+        </select>
+
+        <label style="display:block;margin-top:14px;">Copiar a</label>
+        <div id="copiarDiasDestino" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:8px;">
+          <label class="dia-chip"><input type="checkbox" value="1"><span>Lunes</span></label>
+          <label class="dia-chip"><input type="checkbox" value="2"><span>Martes</span></label>
+          <label class="dia-chip"><input type="checkbox" value="3"><span>Miércoles</span></label>
+          <label class="dia-chip"><input type="checkbox" value="4"><span>Jueves</span></label>
+          <label class="dia-chip"><input type="checkbox" value="5"><span>Viernes</span></label>
+          <label class="dia-chip"><input type="checkbox" value="6"><span>Sábado</span></label>
+          <label class="dia-chip" style="grid-column:1/-1;"><input type="checkbox" value="7"><span>Domingo</span></label>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:18px;">
+          <button id="btnCancelarCopiarHorario" type="button" style="flex:1;border:1px solid #d8cfe0;background:#fff;color:#655a6c;border-radius:12px;padding:12px;font-weight:700;">Cancelar</button>
+          <button id="btnCopiarHorario" type="button" class="btn-guardar-horario" style="flex:1;margin-top:0;">Copiar horarios</button>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      .dia-chip{cursor:pointer;margin:0!important;}
+      .dia-chip input{position:absolute;opacity:0;pointer-events:none;}
+      .dia-chip span{display:flex;align-items:center;justify-content:center;min-height:44px;padding:9px 10px;border:1px solid #ded5e5;border-radius:12px;background:#faf8fb;color:#655a6c;font-weight:700;transition:.15s ease;}
+      .dia-chip input:checked + span{background:#7b55da;color:#fff;border-color:#7b55da;box-shadow:0 6px 16px rgba(123,85,218,.18);}
+    </style>
 
     <section id="seccionListaAdmin" class="horarios-form oculto">
       <h3>Horarios asignados</h3>
