@@ -962,12 +962,24 @@ async function confirmarCita() {
   irA("confirmacion");
 }
 
+
+function esModalidadEnLinea(valor) {
+  const v = String(valor || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[ _-]+/g, "");
+  return v === "enlinea" || v === "online" || v === "virtual";
+}
+
 function mostrarConfirmacion(datos) {
   $("mensaje").className = "mensaje oculto";
   const whatsapp = $("whatsappNegocio");
   if (whatsapp && !whatsapp.classList.contains("oculto")) {
     const base = whatsapp.href.split("?text=")[0];
-    const modalidad = servicioSeleccionado?.modalidad === "en_linea" ? "En línea" : "Presencial";
+    const esEnLinea = esModalidadEnLinea(servicioSeleccionado?.modalidad);
+    const modalidad = esEnLinea ? "En línea" : "Presencial";
     const ubicacion = modalidad === "Presencial" && negocioActual?.direccion
       ? ` Dirección: ${negocioActual.direccion}.`
       : "";
@@ -978,7 +990,7 @@ function mostrarConfirmacion(datos) {
     <strong>${escapar(datos.nombre)}</strong><br>
     ${escapar(datos.servicio)}<br>
     ${escapar(fechaBonita(datos.fecha))} · ${escapar(horaBonita(datos.hora))}<br>
-    ${servicioSeleccionado?.modalidad === "en_linea" ? "💻 En línea" : (negocioActual?.direccion ? `📍 ${escapar(negocioActual.direccion)}` : "📍 Presencial")}
+    ${esModalidadEnLinea(servicioSeleccionado?.modalidad) ? "💻 En línea" : (negocioActual?.direccion ? `📍 ${escapar(negocioActual.direccion)}` : "📍 Presencial")}
   `;
   $("confirmacion").classList.remove("oculto");
 }

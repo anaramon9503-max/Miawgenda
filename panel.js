@@ -2049,6 +2049,12 @@ function numeroWhatsApp(valor){
   if(n.length===10) n="52"+n;
   return n;
 }
+
+function esModalidadEnLinea(valor){
+  const v=String(valor||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[ _-]+/g,"");
+  return v==="enlinea" || v==="online" || v==="virtual";
+}
+
 function fechaMensaje(fecha){
   try{return new Date(fecha+"T12:00:00").toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});}catch{return fecha;}
 }
@@ -2058,10 +2064,10 @@ async function abrirWhatsAppCita(id){
   const numero=numeroWhatsApp(c.paciente_telefono); if(!numero) return mostrarError("La cita no tiene teléfono.");
   const [{data:p},{data:sv}] = await Promise.all([
     db.from("profesionales").select("nombre").eq("id",c.profesional_id).maybeSingle(),
-    db.from("servicios").select("nombre").eq("id",c.servicio_id).maybeSingle()
+    db.from("servicios").select("nombre,modalidad").eq("id",c.servicio_id).maybeSingle()
   ]);
   const negocio=negocioActualDatos?.nombre||nombreNegocio?.textContent||"";
-  const dir=negocioActualDatos?.direccion ? `\n📍 ${negocioActualDatos.direccion}` : "";
+  const dir=!esModalidadEnLinea(sv?.modalidad) && negocioActualDatos?.direccion ? `\n📍 ${negocioActualDatos.direccion}` : "";
   const texto=`Hola ${c.paciente_nombre||""} 👋\nTu cita en ${negocio} está registrada.\n🗓️ ${fechaMensaje(c.fecha)}\n🕐 ${horaCorta(c.hora_inicio)}\n✨ ${sv?.nombre||"Cita"}\n👤 ${p?.nombre||""}${dir}\n\n${negocioActualDatos?.mensaje_confirmacion||"¡Te esperamos!"}`;
   window.open(`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`,"_blank","noopener");
 }
