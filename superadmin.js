@@ -87,6 +87,7 @@ function conectarEventos() {
   $("formProfesional").onsubmit = crearProfesional;
   $("formServicioSA").onsubmit = crearServicio;
   $("formHorarioSA").onsubmit = crearHorario;
+  if ($("btnCopiarHorarioSA")) $("btnCopiarHorarioSA").onclick = copiarHorarioSA;
 
   $("profNegocio").onchange = cargarProfesionales;
   $("servNegocio").onchange = cargarServicios;
@@ -1111,179 +1112,49 @@ async function cargarHorarios() {
   });
 
 
-  /* Crear las tarjetas */
-
+  /* Crear menús plegables por día y profesional */
   let html = "";
-
-
-  for (
-    let dia = 1;
-    dia <= 7;
-    dia++
-  ) {
-
-    const profesionalesDia =
-      agrupados[dia];
-
-
-    if (!profesionalesDia) {
-      continue;
-    }
-
-
-    html += `
-
-      <div style="
-        background:#ffffff;
-        border:1px solid #e5e0eb;
-        border-radius:16px;
-        padding:14px;
-        margin-bottom:12px;
-      ">
-
-        <div style="
-          font-size:15px;
-          font-weight:800;
-          color:#7255a8;
-          margin-bottom:12px;
-          text-transform:uppercase;
-        ">
-          ${dias[dia]}
-        </div>
-
-    `;
-
-
-    Object.keys(
-      profesionalesDia
-    ).forEach(
-      profesional_id => {
-
-        const nombreProfesional =
-          mapaProfesionales[
-            profesional_id
-          ] ||
-          "Profesional";
-
-
-        html += `
-
-          <div style="
-            margin-bottom:12px;
-          ">
-
-            <div style="
-              font-weight:700;
-              font-size:14px;
-              margin-bottom:7px;
-            ">
-              ${AR.escape(
-                nombreProfesional
-              )}
-            </div>
-
-        `;
-
-
-        const horas =
-          Object.values(
-            profesionalesDia[
-              profesional_id
-            ]
-          )
-          .sort(
-            (a, b) =>
-              a.hora.localeCompare(
-                b.hora
-              )
-          );
-
-
-        horas.forEach(slot => {
-
-          const serviciosHTML =
-            slot.servicios
-              .map(servicio => `
-
-                <span style="
-                  display:inline-flex;
-                  align-items:center;
-                  gap:4px;
-                  background:#f3eef9;
-                  color:#654a99;
-                  padding:4px 8px;
-                  border-radius:999px;
-                  font-size:11px;
-                  font-weight:600;
-                ">
-
-                  ${
-                    iconoServicio(
-                      servicio.nombre
-                    )
-                  }
-
-                  ${AR.escape(servicio.nombre)} ${servicio.activo ? "" : "(inactivo)"}
-                  <button type="button" title="Editar horario" onclick="editarHorarioSA('${servicio.horario_id}')" style="border:0;background:transparent;cursor:pointer;padding:0 0 0 3px;color:inherit;">✏️</button>
-                  <button type="button" title="${servicio.activo ? "Desactivar" : "Activar"}" onclick="toggleHorario('${servicio.horario_id}', ${!!servicio.activo})" style="border:0;background:transparent;cursor:pointer;padding:0;color:inherit;">${servicio.activo ? "⏸" : "▶"}</button>
-                  <button type="button" title="Eliminar horario" onclick="eliminarHorarioSA('${servicio.horario_id}')" style="border:0;background:transparent;cursor:pointer;padding:0;color:inherit;">×</button>
-                </span>
-
-              `)
-              .join("");
-
-
-          html += `
-
-            <div style="
-              display:flex;
-              align-items:center;
-              gap:8px;
-              padding:7px 0;
-              border-bottom:1px solid #f1edf4;
-              flex-wrap:wrap;
-            ">
-
-              <div style="
-                min-width:48px;
-                font-weight:800;
-                font-size:13px;
-              ">
-                ${slot.hora}
-              </div>
-
-              <div style="
-                display:flex;
-                gap:5px;
-                flex-wrap:wrap;
-              ">
-                ${serviciosHTML}
-              </div>
-
-            </div>
-
-          `;
-
-        });
-
-
-        html += `
-          </div>
-        `;
-
-      }
-    );
-
-
-    html += `
-      </div>
-    `;
+  for (let dia=1; dia<=7; dia++) {
+    const profesionalesDia=agrupados[dia];
+    if(!profesionalesDia) continue;
+    const totalDia=Object.values(profesionalesDia).reduce((n,horas)=>n+Object.keys(horas).length,0);
+    html += `<details style="background:#fff;border:1px solid #e5e0eb;border-radius:16px;margin-bottom:10px;overflow:hidden;">
+      <summary style="cursor:pointer;padding:14px;font-size:15px;font-weight:800;color:#7255a8;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;">
+        <span>${dias[dia]}</span><span style="font-size:11px;color:#81778a;text-transform:none">${totalDia} horario${totalDia===1?'':'s'} ▾</span>
+      </summary><div style="padding:0 12px 12px;">`;
+    Object.keys(profesionalesDia).forEach(profesional_id=>{
+      const nombreProfesional=mapaProfesionales[profesional_id]||'Profesional';
+      const horas=Object.values(profesionalesDia[profesional_id]).sort((a,b)=>a.hora.localeCompare(b.hora));
+      html += `<details style="border-top:1px solid #f1edf4;"><summary style="cursor:pointer;padding:11px 4px;font-weight:700;font-size:14px;display:flex;justify-content:space-between"><span>${AR.escape(nombreProfesional)}</span><span style="font-size:11px;color:#81778a">${horas.length} ▾</span></summary><div style="padding:0 4px 8px;">`;
+      horas.forEach(slot=>{
+        const serviciosHTML=slot.servicios.map(servicio=>`<span style="display:inline-flex;align-items:center;gap:4px;background:#f3eef9;color:#654a99;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:600;">${iconoServicio(servicio.nombre)} ${AR.escape(servicio.nombre)} ${servicio.activo?'':'(inactivo)'}<button type="button" title="Editar" onclick="editarHorarioSA('${servicio.horario_id}')" style="border:0;background:transparent;padding:0 0 0 3px;color:inherit">✏️</button><button type="button" title="${servicio.activo?'Desactivar':'Activar'}" onclick="toggleHorario('${servicio.horario_id}',${!!servicio.activo})" style="border:0;background:transparent;padding:0;color:inherit">${servicio.activo?'⏸':'▶'}</button><button type="button" title="Eliminar" onclick="eliminarHorarioSA('${servicio.horario_id}')" style="border:0;background:transparent;padding:0;color:inherit">×</button></span>`).join('');
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #f5f1f6;flex-wrap:wrap"><div style="min-width:48px;font-weight:800;font-size:13px">${slot.hora}</div><div style="display:flex;gap:5px;flex-wrap:wrap">${serviciosHTML}</div></div>`;
+      });
+      html += `</div></details>`;
+    });
+    html += `</div></details>`;
   }
+  $("listaHorariosSA").innerHTML=html||'<div class="sin-resultados">Sin horarios.</div>';
+}
 
-
-  $("listaHorariosSA").innerHTML =
-    html ||
-    '<div class="sin-resultados">Sin horarios.</div>';
+async function copiarHorarioSA(){
+  clearMsg();
+  const profesionalId=$("horProfesional")?.value, servicioId=$("horServicio")?.value;
+  const origen=Number($("saCopiarOrigen")?.value);
+  const destinos=[...document.querySelectorAll('#saCopiarDestinos input:checked')].map(x=>Number(x.value)).filter(x=>x!==origen);
+  if(!profesionalId||!servicioId) return msg('Selecciona profesional y servicio.',true);
+  if(!destinos.length) return msg('Selecciona al menos un día destino diferente al origen.',true);
+  const btn=$("btnCopiarHorarioSA"); btn.disabled=true; btn.textContent='Copiando...';
+  try{
+    const {data:origenes,error:e1}=await db.from('horarios').select('hora_slot,hora_inicio,hora_fin').eq('profesional_id',profesionalId).eq('servicio_id',servicioId).eq('dia_semana',origen).eq('activo',true); if(e1) throw e1;
+    if(!origenes?.length) return msg(`No hay horarios activos en ${dias[origen]}.`,true);
+    const {data:existentes,error:e2}=await db.from('horarios').select('dia_semana,hora_slot,hora_inicio').eq('profesional_id',profesionalId).eq('servicio_id',servicioId).in('dia_semana',destinos).eq('activo',true); if(e2) throw e2;
+    const norm=h=>String(h||'').slice(0,8); const keys=new Set((existentes||[]).map(h=>`${h.dia_semana}|${norm(h.hora_slot||h.hora_inicio)}`)); const inserts=[];
+    destinos.forEach(d=>origenes.forEach(h=>{const hi=norm(h.hora_slot||h.hora_inicio);if(!keys.has(`${d}|${hi}`))inserts.push({profesional_id:profesionalId,servicio_id:servicioId,dia_semana:d,hora_slot:hi,hora_inicio:hi,hora_fin:h.hora_fin,activo:true});}));
+    if(!inserts.length) return msg('Los días seleccionados ya tenían esos horarios.');
+    const {error}=await db.from('horarios').insert(inserts);if(error)throw error;
+    document.querySelectorAll('#saCopiarDestinos input').forEach(x=>x.checked=false);msg(`Se copiaron ${inserts.length} horarios.`);await cargarHorarios();
+  }catch(e){msg(e?.message||'No fue posible copiar los horarios.',true);}finally{btn.disabled=false;btn.textContent='📋 Copiar horario';}
 }
 
 

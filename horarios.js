@@ -19,6 +19,9 @@ const diaHorario = $("diaHorario");
 const horaSlot = $("horaSlot");
 const btnGuardarHorario = $("btnGuardarHorario");
 const listaHorarios = $("listaHorarios");
+const seccionCopiarHorario = $("seccionCopiarHorario");
+const copiarDiaOrigen = $("copiarDiaOrigen");
+const btnCopiarHorario = $("btnCopiarHorario");
 const mensaje = $("mensaje");
 
 let negocioActualId = null;
@@ -82,6 +85,8 @@ btnGuardarHorario?.addEventListener(
   guardarHorario
 );
 
+btnCopiarHorario?.addEventListener("click", copiarHorario);
+
 function mostrarVistaResuelta() {
   cargandoRol?.classList.add("oculto");
 }
@@ -139,6 +144,7 @@ async function iniciar() {
   if (esAdmin) {
     navAdmin?.classList.remove("oculto");
     seccionAdminHorarios?.classList.remove("oculto");
+    seccionCopiarHorario?.classList.remove("oculto");
     seccionListaAdmin?.classList.remove("oculto");
     seccionProfesionalHorarios?.classList.add("oculto");
 
@@ -849,95 +855,52 @@ async function cargarHorarios() {
 
 function renderHorarios(horarios) {
   if (!horarios.length) {
-    listaHorarios.innerHTML = `
-      <div class="sin-resultados">
-        No hay horarios asignados para este servicio.
-      </div>
-    `;
+    listaHorarios.innerHTML = `<div class="sin-resultados">No hay horarios asignados para este servicio.</div>`;
     return;
   }
+  const grupos = {};
+  horarios.forEach(h => (grupos[h.dia_semana] ||= []).push(h));
+  listaHorarios.innerHTML = Object.keys(grupos).sort((a,b)=>a-b).map(dia => {
+    const items = grupos[dia];
+    return `<details class="horario-card" style="padding:0;overflow:hidden">
+      <summary style="cursor:pointer;padding:14px;font-weight:800;color:#493d52;display:flex;justify-content:space-between;align-items:center">
+        <span>${dias[dia]}</span><span style="font-size:12px;color:#81778a">${items.length} horario${items.length===1?'':'s'} ▾</span>
+      </summary>
+      <div style="padding:0 14px 14px">
+      ${items.map(h=>{
+        const inicio=cortarHora(h.hora_inicio||h.hora_slot), fin=cortarHora(h.hora_fin);
+        return `<div style="padding:10px 0;border-top:1px solid #eee8f2;opacity:${h.activo?1:.55}">
+          <div class="horario-meta"><strong>${inicio}${fin?` – ${fin}`:''}</strong> · ${h.activo?'Activo':'Inactivo'}</div>
+          <div class="horario-acciones">
+            <button type="button" class="btn-horario-estado" onclick="cambiarEstadoHorario('${h.id}',${!h.activo})">${h.activo?'Desactivar':'Activar'}</button>
+            <button type="button" class="btn-horario-eliminar" onclick="eliminarHorario('${h.id}')">Eliminar</button>
+          </div></div>`;
+      }).join('')}</div></details>`;
+  }).join('');
+}
 
-  listaHorarios.innerHTML = "";
-
-  for (
-    const horario
-    of horarios
-  ) {
-    const card =
-      document.createElement(
-        "div"
-      );
-
-    card.className =
-      `horario-card ${
-        horario.activo
-          ? ""
-          : "horario-inactivo"
-      }`;
-
-    const inicio =
-      cortarHora(
-        horario.hora_inicio ||
-        horario.hora_slot
-      );
-
-    const fin =
-      cortarHora(
-        horario.hora_fin
-      );
-
-    card.innerHTML = `
-      <strong>
-        ${dias[
-          horario.dia_semana
-        ] || "Día"}
-      </strong>
-
-      <div class="horario-meta">
-        ${inicio}${
-          fin
-            ? ` – ${fin}`
-            : ""
-        }
-        · ${
-          horario.activo
-            ? "Activo"
-            : "Inactivo"
-        }
-      </div>
-
-      <div class="horario-acciones">
-        <button
-          type="button"
-          class="btn-horario-estado"
-          onclick="cambiarEstadoHorario(
-            '${horario.id}',
-            ${!horario.activo}
-          )"
-        >
-          ${
-            horario.activo
-              ? "Desactivar"
-              : "Activar"
-          }
-        </button>
-
-        <button
-          type="button"
-          class="btn-horario-eliminar"
-          onclick="eliminarHorario(
-            '${horario.id}'
-          )"
-        >
-          Eliminar
-        </button>
-      </div>
-    `;
-
-    listaHorarios.appendChild(
-      card
-    );
-  }
+async function copiarHorario(){
+  ocultarMensaje();
+  const profesionalId=profesionalHorario.value, servicioId=servicioHorario.value;
+  const origen=Number(copiarDiaOrigen?.value);
+  const destinos=[...document.querySelectorAll('#copiarDiasDestino input:checked')].map(x=>Number(x.value)).filter(x=>x!==origen);
+  if(!profesionalId||!servicioId) return mostrarError('Selecciona primero un profesional y un servicio.');
+  if(!destinos.length) return mostrarError('Selecciona al menos un día destino diferente al día origen.');
+  btnCopiarHorario.disabled=true; btnCopiarHorario.textContent='Copiando...';
+  try{
+    const {data:origenes,error:e1}=await db.from('horarios').select('hora_slot,hora_inicio,hora_fin,activo').eq('profesional_id',profesionalId).eq('servicio_id',servicioId).eq('dia_semana',origen).eq('activo',true);
+    if(e1) throw e1;
+    if(!origenes?.length) return mostrarError(`No hay horarios activos en ${dias[origen]}.`);
+    const {data:existentes,error:e2}=await db.from('horarios').select('dia_semana,hora_slot,hora_inicio').eq('profesional_id',profesionalId).eq('servicio_id',servicioId).in('dia_semana',destinos).eq('activo',true);
+    if(e2) throw e2;
+    const keys=new Set((existentes||[]).map(h=>`${h.dia_semana}|${normalizarHora(h.hora_slot||h.hora_inicio)}`));
+    const inserts=[];
+    destinos.forEach(d=>origenes.forEach(h=>{const hi=normalizarHora(h.hora_slot||h.hora_inicio); if(!keys.has(`${d}|${hi}`)) inserts.push({profesional_id:profesionalId,servicio_id:servicioId,dia_semana:d,hora_slot:hi,hora_inicio:hi,hora_fin:h.hora_fin,activo:true});}));
+    if(!inserts.length) return mostrarExito('Los días seleccionados ya tenían esos horarios.');
+    const {error}=await db.from('horarios').insert(inserts); if(error) throw error;
+    mostrarExito(`Se copiaron ${inserts.length} horarios correctamente.`); document.querySelectorAll('#copiarDiasDestino input').forEach(x=>x.checked=false); await cargarHorarios();
+  }catch(e){console.error(e);mostrarError(e?.message||'No fue posible copiar los horarios.');}
+  finally{btnCopiarHorario.disabled=false;btnCopiarHorario.textContent='📋 Copiar horario';}
 }
 
 async function cambiarEstadoHorario(
