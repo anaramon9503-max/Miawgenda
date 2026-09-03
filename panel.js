@@ -35,8 +35,6 @@ const btnLogin =
 const btnCerrar =
   document.getElementById("btnCerrar");
 
-const btnOlvidePassword =
-  document.getElementById("btnOlvidePassword");
 
 const btnCambiarPassword =
   document.getElementById("btnCambiarPassword");
@@ -204,10 +202,6 @@ btnCerrar.addEventListener(
 );
 
 
-btnOlvidePassword?.addEventListener(
-  "click",
-  solicitarRecuperacionPassword
-);
 
 btnCambiarPassword?.addEventListener(
   "click",
@@ -359,63 +353,6 @@ async function iniciarSesion() {
 // =====================================================
 // RECUPERAR / CAMBIAR CONTRASEÑA
 // =====================================================
-
-async function solicitarRecuperacionPassword() {
-
-  const email =
-    emailInput.value.trim();
-
-  ocultarMensaje();
-
-  if (!email) {
-    mostrarError(
-      "Escribe tu correo primero para enviarte el enlace de recuperación."
-    );
-    emailInput.focus();
-    return;
-  }
-
-  btnOlvidePassword.disabled = true;
-  btnOlvidePassword.textContent = "Enviando...";
-
-  try {
-
-    const redirectTo =
-      `${window.location.origin}/panel.html?recuperar=1`;
-
-    const { error } =
-      await db.auth.resetPasswordForEmail(
-        email,
-        { redirectTo }
-      );
-
-    if (error) {
-      throw error;
-    }
-
-    mostrarExito(
-      "Te enviamos un correo para restablecer tu contraseña. Revisa también spam o correo no deseado."
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Error recuperación:",
-      error
-    );
-
-    mostrarError(
-      error?.message ||
-      "No fue posible enviar el correo de recuperación."
-    );
-
-  } finally {
-
-    btnOlvidePassword.disabled = false;
-    btnOlvidePassword.textContent =
-      "¿Olvidaste tu contraseña?";
-  }
-}
 
 function abrirModalPassword(
   recuperacion = false

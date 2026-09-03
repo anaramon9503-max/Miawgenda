@@ -1098,13 +1098,65 @@ async function cargarUsuarios() {
   const {data:{session}}=await db.auth.getSession(); if(!session)return;
   try { const r=await fetch("/api/manage-users",{headers:{Authorization:`Bearer ${session.access_token}`}}); const out=await r.json(); if(!r.ok)throw new Error(out.error||"No se pudieron cargar usuarios");
     const nm=Object.fromEntries(negocios.map(n=>[n.id,n.nombre]));
-    cont.innerHTML=(out.usuarios||[]).map(u=>`<div class="sa-item"><h4>${AR.escape(u.email||"Usuario")}</h4><div class="sa-muted">${AR.escape(nm[u.negocio_id]||"Negocio")} · ${u.es_admin?"Administrador":u.es_profesional?"Profesional":"Sin rol"} · ${u.activo?"Activo":"Inactivo"}</div><div class="sa-actions"><button type="button" onclick="editarUsuarioSA('${u.usuario_id}','${u.negocio_id}','${u.es_admin?"admin":"profesional"}','${AR.escape(u.email||"")}')">✏️ Editar</button><button type="button" onclick="toggleUsuarioSA('${u.usuario_id}','${u.negocio_id}',${!!u.activo})">${u.activo?"⏸️ Desactivar":"▶️ Activar"}</button><button type="button" onclick="eliminarUsuarioSA('${u.usuario_id}')">🗑️ Eliminar</button></div></div>`).join("")||'<div class="sin-resultados">Sin usuarios.</div>';
+    cont.innerHTML=(out.usuarios||[]).map(u=>`<div class="sa-item"><h4>${AR.escape(u.email||"Usuario")}</h4><div class="sa-muted">${AR.escape(nm[u.negocio_id]||"Negocio")} · ${u.es_admin?"Administrador":u.es_profesional?"Profesional":"Sin rol"} · ${u.activo?"Activo":"Inactivo"}</div><div class="sa-actions"><button type="button" onclick="editarUsuarioSA('${u.usuario_id}','${u.negocio_id}','${u.es_admin?"admin":"profesional"}','${AR.escape(u.email||"")}')">✏️ Editar</button><button type="button" onclick="restablecerPasswordUsuarioSA('${u.usuario_id}','${u.negocio_id}','${AR.escape(u.email||"")}')">🔑 Restablecer contraseña</button><button type="button" onclick="toggleUsuarioSA('${u.usuario_id}','${u.negocio_id}',${!!u.activo})">${u.activo?"⏸️ Desactivar":"▶️ Activar"}</button><button type="button" onclick="eliminarUsuarioSA('${u.usuario_id}')">🗑️ Eliminar</button></div></div>`).join("")||'<div class="sin-resultados">Sin usuarios.</div>';
   } catch(e){cont.innerHTML=`<div class="sin-resultados">${AR.escape(e.message)}</div>`;}
 }
 async function editarUsuarioSA(usuario_id,negocio_id,rol,emailActual){
   const email=prompt("Correo:",emailActual); if(!email)return; const nuevoRol=prompt("Rol (admin/profesional):",rol); if(!["admin","profesional"].includes(nuevoRol))return msg("Rol no válido.",true); const password=prompt("Nueva contraseña (déjala vacía para conservarla):","");
   const {data:{session}}=await db.auth.getSession(); const r=await fetch("/api/manage-users",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({usuario_id,negocio_id,rol:nuevoRol,email,password:password||undefined})}); const out=await r.json(); if(!r.ok)return msg(out.error||"No se pudo editar.",true); msg("Usuario actualizado."); await cargarUsuarios();
 }
+
+async function restablecerPasswordUsuarioSA(usuario_id, negocio_id, email) {
+  const temporal = prompt(
+    `Nueva contraseña temporal para ${email || "este usuario"}:\n\nMínimo 8 caracteres.`
+  );
+
+  if (temporal === null) return;
+
+  if (temporal.length < 8) {
+    return msg("La contraseña temporal debe tener al menos 8 caracteres.", true);
+  }
+
+  const confirmar = prompt(
+    "Confirma la contraseña temporal:"
+  );
+
+  if (confirmar === null) return;
+
+  if (temporal !== confirmar) {
+    return msg("Las contraseñas no coinciden.", true);
+  }
+
+  const { data: { session } } = await db.auth.getSession();
+
+  if (!session) {
+    return msg("Tu sesión expiró.", true);
+  }
+
+  const r = await fetch("/api/manage-users", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`
+    },
+    body: JSON.stringify({
+      usuario_id,
+      negocio_id,
+      password: temporal
+    })
+  });
+
+  const out = await r.json();
+
+  if (!r.ok) {
+    return msg(out.error || "No se pudo restablecer la contraseña.", true);
+  }
+
+  msg(
+    `Contraseña restablecida para ${email || "el usuario"}. Envíale la contraseña temporal y pídele que la cambie al iniciar sesión.`
+  );
+}
+
 async function toggleUsuarioSA(usuario_id,negocio_id,activo){const {data:{session}}=await db.auth.getSession();if(!session)return msg("Tu sesión expiró.",true);const r=await fetch("/api/manage-users",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({usuario_id,negocio_id,activo:!activo})});const out=await r.json();if(!r.ok)return msg(out.error||"No se pudo cambiar el estado.",true);msg(activo?"Usuario desactivado.":"Usuario activado.");await cargarUsuarios();}
 async function eliminarUsuarioSA(usuario_id){if(!confirm("¿Eliminar este acceso de usuario?"))return; const {data:{session}}=await db.auth.getSession(); const r=await fetch("/api/manage-users",{method:"DELETE",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({usuario_id})}); const out=await r.json(); if(!r.ok)return msg(out.error||"No se pudo eliminar.",true); msg("Usuario eliminado."); await Promise.all([cargarUsuarios(),cargarProfesionales()]);}
 
