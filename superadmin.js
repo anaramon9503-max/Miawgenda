@@ -39,6 +39,12 @@ async function init() {
 
   $("saCorreo").textContent = ctx.user.email;
   $("btnCerrar").onclick = AR.cerrarSesion;
+  $("btnCambiarPasswordSA")?.addEventListener("click", abrirPasswordSA);
+  $("btnCancelarPasswordSA")?.addEventListener("click", cerrarPasswordSA);
+  $("btnGuardarPasswordSA")?.addEventListener("click", guardarPasswordSA);
+  $("modalPasswordSA")?.addEventListener("click", e => {
+    if (e.target === $("modalPasswordSA")) cerrarPasswordSA();
+  });
 
   // Si el botón todavía existe, funciona.
   // Si ya lo quitaste del HTML, no rompe la página.
@@ -1105,6 +1111,66 @@ async function eliminarUsuarioSA(usuario_id){if(!confirm("¿Eliminar este acceso
 /* =========================================================
    INICIAR
 ========================================================= */
+
+
+/* =========================================================
+   CUENTA / CONTRASEÑA
+========================================================= */
+
+function abrirPasswordSA() {
+  $("saNuevaPassword").value = "";
+  $("saConfirmarPassword").value = "";
+  const m = $("saPasswordMensaje");
+  m.style.display = "none";
+  m.textContent = "";
+  m.style.background = "#f5f1fb";
+  m.style.color = "#604b80";
+  $("modalPasswordSA").style.display = "flex";
+  setTimeout(() => $("saNuevaPassword").focus(), 50);
+}
+
+function cerrarPasswordSA() {
+  $("modalPasswordSA").style.display = "none";
+}
+
+function passwordMsgSA(texto, error = false) {
+  const m = $("saPasswordMensaje");
+  m.textContent = texto;
+  m.style.display = "block";
+  m.style.background = error ? "#fff0f0" : "#f5f1fb";
+  m.style.color = error ? "#a13f3f" : "#604b80";
+}
+
+async function guardarPasswordSA() {
+  const nueva = $("saNuevaPassword").value;
+  const confirmar = $("saConfirmarPassword").value;
+  const btn = $("btnGuardarPasswordSA");
+
+  if (!nueva || nueva.length < 8) {
+    return passwordMsgSA("La contraseña debe tener al menos 8 caracteres.", true);
+  }
+
+  if (nueva !== confirmar) {
+    return passwordMsgSA("Las contraseñas no coinciden.", true);
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Guardando...";
+
+  try {
+    const { error } = await db.auth.updateUser({ password: nueva });
+    if (error) throw error;
+
+    passwordMsgSA("Contraseña actualizada correctamente.");
+    setTimeout(cerrarPasswordSA, 900);
+  } catch (error) {
+    console.error("Error cambiando contraseña:", error);
+    passwordMsgSA(error?.message || "No fue posible cambiar la contraseña.", true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Guardar";
+  }
+}
 
 init();
 

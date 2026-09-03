@@ -191,6 +191,119 @@
 
     }
 
+
+    /* =========================================
+       CUENTA / CONTRASEÑA
+    ========================================= */
+    .btn-link-cuenta{
+      width:100%;
+      margin-top:8px;
+      border:0;
+      background:transparent;
+      color:#7452c7;
+      font-weight:700;
+      cursor:pointer;
+      text-decoration:underline;
+      text-underline-offset:3px;
+      padding:8px;
+    }
+
+    .acciones-sesion{
+      display:flex;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .acciones-sesion button{
+      flex:1;
+    }
+
+    .modal-cuenta{
+      position:fixed;
+      inset:0;
+      z-index:3000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background:rgba(37,29,44,.48);
+    }
+
+    .modal-cuenta-card{
+      width:min(100%,420px);
+      background:#fff;
+      border-radius:22px;
+      padding:20px;
+      box-shadow:0 24px 60px rgba(28,19,35,.23);
+    }
+
+    .modal-cuenta-card h3{
+      margin:0 0 6px;
+      color:#352d3d;
+    }
+
+    .modal-cuenta-card p{
+      margin:0 0 14px;
+      color:#786f80;
+      font-size:13px;
+      line-height:1.45;
+    }
+
+    .modal-cuenta-card label{
+      display:block;
+      margin:11px 0 5px;
+      font-size:12px;
+      font-weight:700;
+      color:#716779;
+    }
+
+    .modal-cuenta-card input{
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid #dcd4e5;
+      font-size:14px;
+    }
+
+    .modal-cuenta-actions{
+      display:flex;
+      gap:9px;
+      margin-top:16px;
+    }
+
+    .modal-cuenta-actions button{
+      flex:1;
+      border:0;
+      border-radius:12px;
+      padding:12px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .btn-cuenta-primary{
+      background:#7b55da;
+      color:#fff;
+    }
+
+    .btn-cuenta-secondary{
+      background:#eee9f3;
+      color:#5f5667;
+    }
+
+    .cuenta-mensaje{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:11px;
+      font-size:13px;
+      background:#f5f1fb;
+      color:#604b80;
+    }
+
+    .cuenta-mensaje.error{
+      background:#fff0f0;
+      color:#a13f3f;
+    }
+
   </style>
 
 <style>
@@ -274,6 +387,10 @@
 
       <button id="btnLogin">
         Entrar
+      </button>
+
+      <button id="btnOlvidePassword" type="button" class="btn-link-cuenta">
+        ¿Olvidaste tu contraseña?
       </button>
 
     </div>
@@ -377,12 +494,23 @@
 
         <!-- CERRAR SESIÓN -->
 
-        <button
-          id="btnCerrar"
-          class="cerrar"
-        >
-          Cerrar sesión
-        </button>
+        <div class="acciones-sesion">
+          <button
+            id="btnCambiarPassword"
+            class="cerrar"
+            type="button"
+          >
+            🔐 Cambiar contraseña
+          </button>
+
+          <button
+            id="btnCerrar"
+            class="cerrar"
+            type="button"
+          >
+            Cerrar sesión
+          </button>
+        </div>
 </div>
 
 
@@ -673,7 +801,33 @@
      Se carga al final para que la navegación
      ya exista cuando panel.js la busque.
 ========================================== -->
-<script src="panel.js?v=4"></script>
+
+<!-- =========================================
+     MODAL CAMBIAR / RESTABLECER CONTRASEÑA
+========================================== -->
+<div id="modalPassword" class="modal-cuenta oculto" aria-hidden="true">
+  <div class="modal-cuenta-card" role="dialog" aria-modal="true" aria-labelledby="tituloModalPassword">
+    <h3 id="tituloModalPassword">Cambiar contraseña</h3>
+    <p id="textoModalPassword">
+      Escribe una nueva contraseña de al menos 8 caracteres.
+    </p>
+
+    <label for="nuevaPassword">Nueva contraseña</label>
+    <input id="nuevaPassword" type="password" minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
+
+    <label for="confirmarPassword">Confirmar contraseña</label>
+    <input id="confirmarPassword" type="password" minlength="8" autocomplete="new-password" placeholder="Repítela">
+
+    <div id="mensajePassword" class="cuenta-mensaje oculto"></div>
+
+    <div class="modal-cuenta-actions">
+      <button id="btnCancelarPassword" type="button" class="btn-cuenta-secondary">Cancelar</button>
+      <button id="btnGuardarPassword" type="button" class="btn-cuenta-primary">Guardar contraseña</button>
+    </div>
+  </div>
+</div>
+
+<script src="panel.js?v=5"></script>
 
 </body>
 </html>

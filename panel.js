@@ -35,6 +35,36 @@ const btnLogin =
 const btnCerrar =
   document.getElementById("btnCerrar");
 
+const btnOlvidePassword =
+  document.getElementById("btnOlvidePassword");
+
+const btnCambiarPassword =
+  document.getElementById("btnCambiarPassword");
+
+const modalPassword =
+  document.getElementById("modalPassword");
+
+const tituloModalPassword =
+  document.getElementById("tituloModalPassword");
+
+const textoModalPassword =
+  document.getElementById("textoModalPassword");
+
+const nuevaPassword =
+  document.getElementById("nuevaPassword");
+
+const confirmarPassword =
+  document.getElementById("confirmarPassword");
+
+const mensajePassword =
+  document.getElementById("mensajePassword");
+
+const btnGuardarPassword =
+  document.getElementById("btnGuardarPassword");
+
+const btnCancelarPassword =
+  document.getElementById("btnCancelarPassword");
+
 const nombreNegocio =
   document.getElementById("nombreNegocio");
 
@@ -136,6 +166,8 @@ let esAdmin = false;
 let profesionalesActuales = [];
 let serviciosActuales = [];
 let citasActuales = [];
+let modoRecuperacionPassword =
+  new URLSearchParams(window.location.search).get("recuperar") === "1";
 
 // Filtros de citas.
 // El comportamiento inicial conserva lo que ya teníamos:
@@ -169,6 +201,36 @@ passwordInput.addEventListener(
 btnCerrar.addEventListener(
   "click",
   cerrarSesion
+);
+
+
+btnOlvidePassword?.addEventListener(
+  "click",
+  solicitarRecuperacionPassword
+);
+
+btnCambiarPassword?.addEventListener(
+  "click",
+  () => abrirModalPassword(false)
+);
+
+btnCancelarPassword?.addEventListener(
+  "click",
+  cerrarModalPassword
+);
+
+btnGuardarPassword?.addEventListener(
+  "click",
+  guardarNuevaPassword
+);
+
+modalPassword?.addEventListener(
+  "click",
+  e => {
+    if (e.target === modalPassword) {
+      cerrarModalPassword();
+    }
+  }
 );
 
 
@@ -291,6 +353,286 @@ async function iniciarSesion() {
     btnLogin.textContent = "Entrar";
   }
 }
+
+
+
+// =====================================================
+// RECUPERAR / CAMBIAR CONTRASEÑA
+// =====================================================
+
+async function solicitarRecuperacionPassword() {
+
+  const email =
+    emailInput.value.trim();
+
+  ocultarMensaje();
+
+  if (!email) {
+    mostrarError(
+      "Escribe tu correo primero para enviarte el enlace de recuperación."
+    );
+    emailInput.focus();
+    return;
+  }
+
+  btnOlvidePassword.disabled = true;
+  btnOlvidePassword.textContent = "Enviando...";
+
+  try {
+
+    const redirectTo =
+      `${window.location.origin}/panel.html?recuperar=1`;
+
+    const { error } =
+      await db.auth.resetPasswordForEmail(
+        email,
+        { redirectTo }
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    mostrarExito(
+      "Te enviamos un correo para restablecer tu contraseña. Revisa también spam o correo no deseado."
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Error recuperación:",
+      error
+    );
+
+    mostrarError(
+      error?.message ||
+      "No fue posible enviar el correo de recuperación."
+    );
+
+  } finally {
+
+    btnOlvidePassword.disabled = false;
+    btnOlvidePassword.textContent =
+      "¿Olvidaste tu contraseña?";
+  }
+}
+
+function abrirModalPassword(
+  recuperacion = false
+) {
+
+  if (!modalPassword) {
+    return;
+  }
+
+  modoRecuperacionPassword =
+    recuperacion === true ||
+    modoRecuperacionPassword;
+
+  tituloModalPassword.textContent =
+    modoRecuperacionPassword
+      ? "Restablecer contraseña"
+      : "Cambiar contraseña";
+
+  textoModalPassword.textContent =
+    modoRecuperacionPassword
+      ? "Crea una nueva contraseña para volver a entrar a Miawgenda."
+      : "Escribe una nueva contraseña de al menos 8 caracteres.";
+
+  nuevaPassword.value = "";
+  confirmarPassword.value = "";
+
+  mensajePassword.textContent = "";
+  mensajePassword.className =
+    "cuenta-mensaje oculto";
+
+  btnCancelarPassword.classList.toggle(
+    "oculto",
+    modoRecuperacionPassword
+  );
+
+  modalPassword.classList.remove("oculto");
+  modalPassword.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+  setTimeout(
+    () => nuevaPassword.focus(),
+    50
+  );
+}
+
+function cerrarModalPassword() {
+
+  if (
+    modoRecuperacionPassword
+  ) {
+    return;
+  }
+
+  modalPassword?.classList.add("oculto");
+  modalPassword?.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+}
+
+function mensajeModalPassword(
+  texto,
+  error = false
+) {
+
+  if (!mensajePassword) {
+    return;
+  }
+
+  mensajePassword.textContent =
+    texto;
+
+  mensajePassword.className =
+    `cuenta-mensaje ${error ? "error" : ""}`;
+}
+
+async function guardarNuevaPassword() {
+
+  const nueva =
+    nuevaPassword.value;
+
+  const confirmar =
+    confirmarPassword.value;
+
+  mensajeModalPassword("");
+
+  if (
+    !nueva ||
+    nueva.length < 8
+  ) {
+    mensajeModalPassword(
+      "La contraseña debe tener al menos 8 caracteres.",
+      true
+    );
+    return;
+  }
+
+  if (
+    nueva !== confirmar
+  ) {
+    mensajeModalPassword(
+      "Las contraseñas no coinciden.",
+      true
+    );
+    return;
+  }
+
+  btnGuardarPassword.disabled = true;
+  btnGuardarPassword.textContent =
+    "Guardando...";
+
+  try {
+
+    const { error } =
+      await db.auth.updateUser({
+        password: nueva
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    if (
+      modoRecuperacionPassword
+    ) {
+
+      mensajeModalPassword(
+        "Contraseña actualizada. Ya puedes iniciar sesión."
+      );
+
+      await new Promise(
+        resolve => setTimeout(resolve, 900)
+      );
+
+      await db.auth.signOut();
+
+      window.history.replaceState(
+        {},
+        "",
+        "panel.html"
+      );
+
+      modoRecuperacionPassword =
+        false;
+
+      modalPassword.classList.add("oculto");
+      login.classList.remove("oculto");
+      panel.classList.add("oculto");
+      pantallaCargando?.classList.add("oculto");
+
+      passwordInput.value = "";
+      mostrarExito(
+        "Contraseña actualizada. Inicia sesión con tu nueva contraseña."
+      );
+
+      return;
+    }
+
+    mensajeModalPassword(
+      "Contraseña actualizada correctamente."
+    );
+
+    setTimeout(
+      () => {
+        modalPassword.classList.add("oculto");
+        modalPassword.setAttribute(
+          "aria-hidden",
+          "true"
+        );
+      },
+      900
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Error cambiando contraseña:",
+      error
+    );
+
+    mensajeModalPassword(
+      error?.message ||
+      "No fue posible cambiar la contraseña.",
+      true
+    );
+
+  } finally {
+
+    btnGuardarPassword.disabled = false;
+    btnGuardarPassword.textContent =
+      "Guardar contraseña";
+  }
+}
+
+
+// =====================================================
+// EVENTO DE RECUPERACIÓN DE SUPABASE
+// =====================================================
+
+db.auth.onAuthStateChange(
+  (event, session) => {
+
+    if (
+      event === "PASSWORD_RECOVERY"
+    ) {
+      modoRecuperacionPassword = true;
+
+      pantallaCargando?.classList.add("oculto");
+      login.classList.add("oculto");
+      panel.classList.add("oculto");
+
+      abrirModalPassword(true);
+    }
+  }
+);
 
 
 // =====================================================
@@ -2795,6 +3137,15 @@ async function revisarSesion() {
   }
 
   if (data.session?.user) {
+
+    if (modoRecuperacionPassword) {
+      pantallaCargando?.classList.add("oculto");
+      login.classList.add("oculto");
+      panel.classList.add("oculto");
+      abrirModalPassword(true);
+      return;
+    }
+
     await procesarUsuario(
       data.session.user
     );

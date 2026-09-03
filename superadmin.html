@@ -563,6 +563,14 @@
       <div class="sa-top-actions">
 
         <button
+          id="btnCambiarPasswordSA"
+          class="sa-mini-btn"
+          type="button"
+        >
+          🔐 Contraseña
+        </button>
+
+        <button
           id="btnCerrar"
           class="sa-mini-btn"
           type="button"
@@ -1191,6 +1199,27 @@
 
 </nav>
 
+
+
+<div id="modalPasswordSA" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(37,29,44,.48);align-items:center;justify-content:center;padding:18px;">
+  <div style="width:min(100%,420px);background:#fff;border-radius:22px;padding:20px;box-shadow:0 24px 60px rgba(28,19,35,.23);">
+    <h3 style="margin:0 0 6px;color:#352d3d;">Cambiar contraseña</h3>
+    <p style="margin:0 0 14px;color:#786f80;font-size:13px;line-height:1.45;">Escribe una nueva contraseña de al menos 8 caracteres.</p>
+
+    <label for="saNuevaPassword">Nueva contraseña</label>
+    <input id="saNuevaPassword" type="password" minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
+
+    <label for="saConfirmarPassword">Confirmar contraseña</label>
+    <input id="saConfirmarPassword" type="password" minlength="8" autocomplete="new-password" placeholder="Repítela">
+
+    <div id="saPasswordMensaje" style="display:none;margin-top:12px;padding:10px 12px;border-radius:11px;font-size:13px;background:#f5f1fb;color:#604b80;"></div>
+
+    <div style="display:flex;gap:9px;margin-top:16px;">
+      <button id="btnCancelarPasswordSA" type="button" class="sa-mini-btn" style="flex:1;">Cancelar</button>
+      <button id="btnGuardarPasswordSA" type="button" class="btn-guardar" style="flex:1;margin:0;">Guardar</button>
+    </div>
+  </div>
+</div>
 
 <script src="admin-common.js"></script>
 <script src="superadmin.js"></script>
