@@ -88,6 +88,8 @@ function conectarEventos() {
   $("formServicioSA").onsubmit = crearServicio;
   $("formHorarioSA").onsubmit = crearHorario;
   if ($("btnCopiarHorarioSA")) $("btnCopiarHorarioSA").onclick = copiarHorarioSA;
+  $("btnAbrirCopiarHorarioSA")?.addEventListener("click",()=>{ if(!$("horProfesional")?.value) return msg("Selecciona primero un profesional.",true); $("modalCopiarHorarioSA")?.classList.remove("oculto"); });
+  $("btnCerrarCopiarHorarioSA")?.addEventListener("click",()=>$("modalCopiarHorarioSA")?.classList.add("oculto"));
 
   $("profNegocio").onchange = cargarProfesionales;
   $("servNegocio").onchange = cargarServicios;
@@ -622,50 +624,15 @@ async function llenarProfesionalesHorario() {
 ========================================================= */
 
 async function llenarServiciosHorario() {
-
-  const profesional_id =
-    $("horProfesional").value;
-
-  if (!profesional_id) {
-
-    $("horServicio").innerHTML =
-      '<option value="">Selecciona profesional</option>';
-
-    return;
-  }
-
-  const negocio_id =
-    $("horNegocio").value;
-
-  const { data, error } = await db
-    .from("servicios")
-    .select("id,nombre")
-    .eq(
-      "negocio_id",
-      negocio_id
-    )
-    .eq(
-      "activo",
-      true
-    )
-    .order("nombre");
-
-  if (error) {
-    return msg(
-      error.message,
-      true
-    );
-  }
-
-  $("horServicio").innerHTML =
-    '<option value="">Selecciona</option>' +
-    (data || []).map(s =>
-      `
-        <option value="${s.id}">
-          ${AR.escape(s.nombre)}
-        </option>
-      `
-    ).join("");
+  const profesional_id = $("horProfesional").value;
+  if (!profesional_id) { $("horServicio").innerHTML = ""; return; }
+  const {data:asig,error:e1}=await db.from("profesional_servicios").select("servicio_id").eq("profesional_id",profesional_id);
+  if(e1) return msg(e1.message,true);
+  const ids=(asig||[]).map(x=>x.servicio_id);
+  if(!ids.length){$("horServicio").innerHTML="";return;}
+  const {data,error}=await db.from("servicios").select("id,nombre,duracion_minutos").in("id",ids).eq("activo",true).order("nombre");
+  if(error) return msg(error.message,true);
+  $("horServicio").innerHTML=(data||[]).map(s=>`<option value="${s.id}" data-duracion="${Number(s.duracion_minutos)||60}">${AR.escape(s.nombre)}</option>`).join("");
 }
 
 
@@ -701,130 +668,19 @@ function sumarMinutos(
 ========================================================= */
 
 async function crearHorario(e) {
-
-  e.preventDefault();
-
-  const profesional_id =
-    $("horProfesional").value;
-
-  const servicio_id =
-    $("horServicio").value;
-
-  const hora =
-    $("horHora").value;
-
-  if (
-    !profesional_id ||
-    !servicio_id ||
-    !hora
-  ) {
-
-    return msg(
-      "Completa profesional, servicio y hora.",
-      true
-    );
-  }
-
-  const {
-    data: servicio,
-    error: servicioError
-  } = await db
-    .from("servicios")
-    .select(
-      "duracion_minutos"
-    )
-    .eq(
-      "id",
-      servicio_id
-    )
-    .single();
-
-  if (servicioError) {
-
-    return msg(
-      servicioError.message,
-      true
-    );
-  }
-
-  const {
-    error: asignacionError
-  } = await db
-    .from(
-      "profesional_servicios"
-    )
-    .upsert(
-      {
-        profesional_id,
-        servicio_id
-      },
-      {
-        onConflict:
-          "profesional_id,servicio_id",
-
-        ignoreDuplicates:
-          true
-      }
-    );
-
-  if (asignacionError) {
-
-    return msg(
-      asignacionError.message,
-      true
-    );
-  }
-
-  const payload = {
-
-    profesional_id,
-
-    servicio_id,
-
-    dia_semana:
-      Number(
-        $("horDia").value
-      ),
-
-    hora_slot:
-      hora + ":00",
-
-    hora_inicio:
-      hora + ":00",
-
-    hora_fin:
-      sumarMinutos(
-        hora,
-        Number(
-          servicio?.duracion_minutos ||
-          60
-        )
-      ),
-
-    activo:
-      true
-  };
-
-  const { error } = await db
-    .from("horarios")
-    .insert(payload);
-
-  if (error) {
-
-    return msg(
-      error.message,
-      true
-    );
-  }
-
-  msg(
-    "Horario agregado."
-  );
-
-  $("horHora").value =
-    "";
-
-  await cargarHorarios();
+  e.preventDefault(); clearMsg();
+  const profesional_id=$("horProfesional").value, hora=$("horHora").value, dia=Number($("horDia").value);
+  if(!profesional_id||!hora||!dia) return msg("Completa profesional, día y hora.",true);
+  const {data:asig,error:e1}=await db.from("profesional_servicios").select("servicio_id").eq("profesional_id",profesional_id); if(e1)return msg(e1.message,true);
+  const ids=(asig||[]).map(x=>x.servicio_id); if(!ids.length)return msg("Ese profesional no tiene servicios asignados.",true);
+  const {data:servicios,error:e2}=await db.from("servicios").select("id,duracion_minutos").in("id",ids).eq("activo",true); if(e2)return msg(e2.message,true);
+  const hi=hora+":00";
+  const {data:exist,error:e3}=await db.from("horarios").select("servicio_id").eq("profesional_id",profesional_id).eq("dia_semana",dia).eq("hora_slot",hi).eq("activo",true); if(e3)return msg(e3.message,true);
+  const ya=new Set((exist||[]).map(x=>x.servicio_id));
+  const payload=(servicios||[]).filter(x=>!ya.has(x.id)).map(x=>({profesional_id,servicio_id:x.id,dia_semana:dia,hora_slot:hi,hora_inicio:hi,hora_fin:sumarMinutos(hora,Number(x.duracion_minutos)||60),activo:true}));
+  if(!payload.length)return msg("Ese horario ya estaba agregado.");
+  const {error}=await db.from("horarios").insert(payload); if(error)return msg(error.message,true);
+  msg(`Horario agregado a ${payload.length} servicio${payload.length===1?'':'s'}.`); $("horHora").value=""; await cargarHorarios();
 }
 
 
@@ -1127,8 +983,8 @@ async function cargarHorarios() {
       const horas=Object.values(profesionalesDia[profesional_id]).sort((a,b)=>a.hora.localeCompare(b.hora));
       html += `<details style="border-top:1px solid #f1edf4;"><summary style="cursor:pointer;padding:11px 4px;font-weight:700;font-size:14px;display:flex;justify-content:space-between"><span>${AR.escape(nombreProfesional)}</span><span style="font-size:11px;color:#81778a">${horas.length} ▾</span></summary><div style="padding:0 4px 8px;">`;
       horas.forEach(slot=>{
-        const serviciosHTML=slot.servicios.map(servicio=>`<span style="display:inline-flex;align-items:center;gap:4px;background:#f3eef9;color:#654a99;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:600;">${iconoServicio(servicio.nombre)} ${AR.escape(servicio.nombre)} ${servicio.activo?'':'(inactivo)'}<button type="button" title="Editar" onclick="editarHorarioSA('${servicio.horario_id}')" style="border:0;background:transparent;padding:0 0 0 3px;color:inherit">✏️</button><button type="button" title="${servicio.activo?'Desactivar':'Activar'}" onclick="toggleHorario('${servicio.horario_id}',${!!servicio.activo})" style="border:0;background:transparent;padding:0;color:inherit">${servicio.activo?'⏸':'▶'}</button><button type="button" title="Eliminar" onclick="eliminarHorarioSA('${servicio.horario_id}')" style="border:0;background:transparent;padding:0;color:inherit">×</button></span>`).join('');
-        html += `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #f5f1f6;flex-wrap:wrap"><div style="min-width:48px;font-weight:800;font-size:13px">${slot.hora}</div><div style="display:flex;gap:5px;flex-wrap:wrap">${serviciosHTML}</div></div>`;
+        const primer=slot.servicios[0];
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid #f5f1f6;flex-wrap:wrap"><div style="min-width:55px;font-weight:800;font-size:13px">${slot.hora}</div><div style="font-size:12px;color:#81778a;flex:1">Todos los servicios asignados</div><button type="button" class="sa-mini-btn" onclick="eliminarSlotSA('${profesional_id}',${dia},'${slot.hora}')">Eliminar</button></div>`;
       });
       html += `</div></details>`;
     });
@@ -1139,22 +995,18 @@ async function cargarHorarios() {
 
 async function copiarHorarioSA(){
   clearMsg();
-  const profesionalId=$("horProfesional")?.value, servicioId=$("horServicio")?.value;
-  const origen=Number($("saCopiarOrigen")?.value);
+  const profesionalId=$("horProfesional")?.value; const origen=Number($("saCopiarOrigen")?.value);
   const destinos=[...document.querySelectorAll('#saCopiarDestinos input:checked')].map(x=>Number(x.value)).filter(x=>x!==origen);
-  if(!profesionalId||!servicioId) return msg('Selecciona profesional y servicio.',true);
-  if(!destinos.length) return msg('Selecciona al menos un día destino diferente al origen.',true);
-  const btn=$("btnCopiarHorarioSA"); btn.disabled=true; btn.textContent='Copiando...';
+  if(!profesionalId) return msg('Selecciona profesional.',true); if(!destinos.length)return msg('Selecciona al menos un día destino diferente al origen.',true);
+  const btn=$("btnCopiarHorarioSA");btn.disabled=true;btn.textContent='Copiando...';
   try{
-    const {data:origenes,error:e1}=await db.from('horarios').select('hora_slot,hora_inicio,hora_fin').eq('profesional_id',profesionalId).eq('servicio_id',servicioId).eq('dia_semana',origen).eq('activo',true); if(e1) throw e1;
-    if(!origenes?.length) return msg(`No hay horarios activos en ${dias[origen]}.`,true);
-    const {data:existentes,error:e2}=await db.from('horarios').select('dia_semana,hora_slot,hora_inicio').eq('profesional_id',profesionalId).eq('servicio_id',servicioId).in('dia_semana',destinos).eq('activo',true); if(e2) throw e2;
-    const norm=h=>String(h||'').slice(0,8); const keys=new Set((existentes||[]).map(h=>`${h.dia_semana}|${norm(h.hora_slot||h.hora_inicio)}`)); const inserts=[];
-    destinos.forEach(d=>origenes.forEach(h=>{const hi=norm(h.hora_slot||h.hora_inicio);if(!keys.has(`${d}|${hi}`))inserts.push({profesional_id:profesionalId,servicio_id:servicioId,dia_semana:d,hora_slot:hi,hora_inicio:hi,hora_fin:h.hora_fin,activo:true});}));
-    if(!inserts.length) return msg('Los días seleccionados ya tenían esos horarios.');
-    const {error}=await db.from('horarios').insert(inserts);if(error)throw error;
-    document.querySelectorAll('#saCopiarDestinos input').forEach(x=>x.checked=false);msg(`Se copiaron ${inserts.length} horarios.`);await cargarHorarios();
-  }catch(e){msg(e?.message||'No fue posible copiar los horarios.',true);}finally{btn.disabled=false;btn.textContent='📋 Copiar horario';}
+    const {data:origenes,error:e1}=await db.from('horarios').select('servicio_id,hora_slot,hora_inicio,hora_fin').eq('profesional_id',profesionalId).eq('dia_semana',origen).eq('activo',true);if(e1)throw e1;if(!origenes?.length)return msg(`No hay horarios activos en ${dias[origen]}.`,true);
+    const {data:existentes,error:e2}=await db.from('horarios').select('dia_semana,servicio_id,hora_slot,hora_inicio').eq('profesional_id',profesionalId).in('dia_semana',destinos).eq('activo',true);if(e2)throw e2;
+    const norm=h=>String(h||'').slice(0,8);const keys=new Set((existentes||[]).map(h=>`${h.dia_semana}|${h.servicio_id}|${norm(h.hora_slot||h.hora_inicio)}`));const inserts=[];
+    destinos.forEach(d=>origenes.forEach(h=>{const hi=norm(h.hora_slot||h.hora_inicio),k=`${d}|${h.servicio_id}|${hi}`;if(!keys.has(k)){inserts.push({profesional_id:profesionalId,servicio_id:h.servicio_id,dia_semana:d,hora_slot:hi,hora_inicio:hi,hora_fin:h.hora_fin,activo:true});keys.add(k);}}));
+    if(inserts.length){const {error}=await db.from('horarios').insert(inserts);if(error)throw error;}
+    document.querySelectorAll('#saCopiarDestinos input').forEach(x=>x.checked=false);$("modalCopiarHorarioSA")?.classList.add("oculto");msg(inserts.length?`Horario copiado a ${destinos.map(d=>dias[d]).join(', ')}.`:'Esos días ya tenían los horarios.');await cargarHorarios();
+  }catch(e){msg(e?.message||'No fue posible copiar los horarios.',true);}finally{btn.disabled=false;btn.textContent='Copiar';}
 }
 
 
@@ -1241,6 +1093,8 @@ async function eliminarProfesional(id){if(!confirm("¿Eliminar este profesional?
 async function editarServicio(id){const {data:s,error:e}=await db.from("servicios").select("nombre,descripcion,duracion_minutos,precio,modalidad").eq("id",id).single();if(e)return msg(e.message,true);const nombre=prompt("Nombre:",s.nombre||"");if(!nombre?.trim())return;const descripcion=prompt("Descripción:",s.descripcion||"");const dur=Number(prompt("Duración en minutos:",s.duracion_minutos||60));if(!dur)return;const precio=prompt("Precio:",s.precio??"");const modalidad=prompt("Modalidad: presencial o en_linea",s.modalidad||"presencial");if(!["presencial","en_linea"].includes(modalidad))return msg("Modalidad no válida.",true);const {error}=await db.from("servicios").update({nombre:nombre.trim(),descripcion:descripcion?.trim()||null,duracion_minutos:dur,precio:precio===""?null:Number(precio),modalidad}).eq("id",id);if(error)return msg(error.message,true);msg("Servicio actualizado.");await cargarServicios();}
 async function toggleServicio(id,activo){const {error}=await db.from("servicios").update({activo:!activo}).eq("id",id);if(error)return msg(error.message,true);msg(activo?"Servicio desactivado.":"Servicio activado.");await Promise.all([cargarServicios(),llenarServiciosHorario()]);}
 async function eliminarServicio(id){if(!confirm("¿Eliminar este servicio?"))return;const {error}=await db.from("servicios").delete().eq("id",id);if(error)return msg(error.message,true);msg("Servicio eliminado.");await cargarServicios();}
+
+async function eliminarSlotSA(profesionalId,dia,hora){if(!confirm("¿Eliminar esta hora para todos los servicios del profesional?"))return;const hh=String(hora||"").slice(0,5)+":00";const {error}=await db.from("horarios").delete().eq("profesional_id",profesionalId).eq("dia_semana",dia).eq("hora_slot",hh);if(error)return msg(error.message,true);msg("Horario eliminado.");await cargarHorarios();}
 async function editarHorarioSA(id){const {data:h,error:e}=await db.from("horarios").select("dia_semana,hora_inicio,hora_slot,servicio_id").eq("id",id).single();if(e)return msg(e.message,true);const dia=Number(prompt("Día (1=Lunes ... 7=Domingo):",h.dia_semana));if(!(dia>=1&&dia<=7))return msg("Día no válido.",true);const hora=prompt("Hora (HH:MM):",String(h.hora_slot||h.hora_inicio||"").slice(0,5));if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(hora||""))return msg("Hora no válida.",true);const {data:sv,error:se}=await db.from("servicios").select("duracion_minutos").eq("id",h.servicio_id).single();if(se)return msg(se.message,true);const {error}=await db.from("horarios").update({dia_semana:dia,hora_slot:hora+":00",hora_inicio:hora+":00",hora_fin:sumarMinutos(hora,Number(sv?.duracion_minutos||60))}).eq("id",id);if(error)return msg(error.message,true);msg("Horario actualizado.");await cargarHorarios();}
 async function toggleHorario(id,activo){const {error}=await db.from("horarios").update({activo:!activo}).eq("id",id);if(error)return msg(error.message,true);msg(activo?"Horario desactivado.":"Horario activado.");await cargarHorarios();}
 async function editarCitaSA(id){const {data:c,error:e}=await db.from("citas").select("paciente_nombre,paciente_telefono,paciente_email,fecha,hora_inicio,hora_fin,estado,servicio_id").eq("id",id).single();if(e)return msg(e.message,true);const paciente=prompt("Paciente:",c.paciente_nombre||"");if(!paciente?.trim())return;const telefono=prompt("Teléfono:",c.paciente_telefono||"");const email=prompt("Correo:",c.paciente_email||"");const fecha=prompt("Fecha (AAAA-MM-DD):",c.fecha||"");if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(fecha||""))return msg("Fecha no válida.",true);const hora=prompt("Hora (HH:MM):",String(c.hora_inicio||"").slice(0,5));if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(hora||""))return msg("Hora no válida.",true);const estado=prompt("Estado: pendiente, confirmada, atendida, cancelada o no_asistio",c.estado||"pendiente");if(!["pendiente","confirmada","atendida","cancelada","no_asistio"].includes(estado))return msg("Estado no válido.",true);const {data:sv}=await db.from("servicios").select("duracion_minutos").eq("id",c.servicio_id).maybeSingle();const {error}=await db.from("citas").update({paciente_nombre:paciente.trim(),paciente_telefono:telefono?.trim()||null,paciente_email:email?.trim()||null,fecha,hora_inicio:hora+":00",hora_fin:sumarMinutos(hora,Number(sv?.duracion_minutos||60)),estado}).eq("id",id);if(error)return msg(error.message,true);msg("Cita actualizada.");await cargarCitas();}

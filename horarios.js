@@ -22,6 +22,9 @@ const listaHorarios = $("listaHorarios");
 const seccionCopiarHorario = $("seccionCopiarHorario");
 const copiarDiaOrigen = $("copiarDiaOrigen");
 const btnCopiarHorario = $("btnCopiarHorario");
+const btnAbrirCopiarHorario = $("btnAbrirCopiarHorario");
+const btnCerrarCopiarHorario = $("btnCerrarCopiarHorario");
+const modalCopiarHorario = $("modalCopiarHorario");
 const mensaje = $("mensaje");
 
 let negocioActualId = null;
@@ -75,10 +78,7 @@ profesionalHorario?.addEventListener(
   }
 );
 
-servicioHorario?.addEventListener(
-  "change",
-  cargarHorarios
-);
+
 
 btnGuardarHorario?.addEventListener(
   "click",
@@ -86,6 +86,12 @@ btnGuardarHorario?.addEventListener(
 );
 
 btnCopiarHorario?.addEventListener("click", copiarHorario);
+btnAbrirCopiarHorario?.addEventListener("click", () => {
+  if (!profesionalHorario.value) return mostrarError("Selecciona primero un profesional.");
+  modalCopiarHorario?.classList.remove("oculto");
+});
+btnCerrarCopiarHorario?.addEventListener("click", () => modalCopiarHorario?.classList.add("oculto"));
+modalCopiarHorario?.addEventListener("click", e => { if (e.target === modalCopiarHorario) modalCopiarHorario.classList.add("oculto"); });
 
 function mostrarVistaResuelta() {
   cargandoRol?.classList.add("oculto");
@@ -266,137 +272,17 @@ async function cargarNombreNegocio() {
 
 
 async function cargarMiHorario() {
-  listaMiHorario.innerHTML = `
-    <div class="cargando">
-      🐱 Cargando tu horario...
-    </div>
-  `;
-
-  // Usamos la vista pública de horarios para consulta de solo lectura.
-  const { data: horarios, error } =
-    await db
-      .from("horarios")
-      .select(`
-        id,
-        profesional_id,
-        servicio_id,
-        dia_semana,
-        hora_slot,
-        hora_inicio,
-        hora_fin,
-        activo
-      `)
-      .eq(
-        "profesional_id",
-        profesionalActualId
-      )
-      .eq(
-        "activo",
-        true
-      )
-      .order(
-        "dia_semana",
-        { ascending: true }
-      )
-      .order(
-        "hora_inicio",
-        { ascending: true }
-      );
-
-  if (error) {
-    console.error(
-      "Error mi horario:",
-      error
-    );
-
-    listaMiHorario.innerHTML = `
-      <div class="sin-resultados">
-        No fue posible cargar tu horario.
-      </div>
-    `;
-
-    // El mensaje se muestra dentro de la tarjeta para evitar duplicarlo.
-    return;
-  }
-
-  if (!horarios?.length) {
-    listaMiHorario.innerHTML = `
-      <div class="sin-resultados">
-        Aún no tienes horarios asignados.
-      </div>
-    `;
-    return;
-  }
-
-  const idsServicios = [
-    ...new Set(
-      horarios
-        .map(h => h.servicio_id)
-        .filter(Boolean)
-    )
-  ];
-
-  let mapaServicios = {};
-
-  if (idsServicios.length) {
-    const { data: servicios, error: errorServicios } =
-      await db
-        .from("servicios")
-        .select("id,nombre")
-        .in("id", idsServicios);
-
-    if (!errorServicios) {
-      mapaServicios =
-        Object.fromEntries(
-          (servicios || []).map(
-            s => [s.id, s.nombre]
-          )
-        );
-    }
-  }
-
-  listaMiHorario.innerHTML = "";
-
-  for (const horario of horarios) {
-    const inicio =
-      horaCorta(
-        horario.hora_inicio ||
-        horario.hora_slot
-      );
-
-    const fin =
-      horaCorta(
-        horario.hora_fin
-      );
-
-    const servicio =
-      mapaServicios[
-        horario.servicio_id
-      ] || "Servicio";
-
-    const card =
-      document.createElement("div");
-
-    card.className =
-      "horario-card";
-
-    card.innerHTML = `
-      <strong>
-        ${dias[horario.dia_semana] || "Día"}
-        · ${inicio}${fin ? ` - ${fin}` : ""}
-      </strong>
-
-      <div class="horario-meta">
-        ${escapar(servicio)}
-      </div>
-
-      <div class="horario-meta">
-        Activo
-      </div>
-    `;
-
-    listaMiHorario.appendChild(card);
-  }
+  listaMiHorario.innerHTML = `<div class="cargando">🐱 Cargando tu horario...</div>`;
+  const { data: horarios, error } = await db.from("horarios")
+    .select("dia_semana,hora_slot,hora_inicio,hora_fin,activo")
+    .eq("profesional_id", profesionalActualId).eq("activo", true)
+    .order("dia_semana", {ascending:true}).order("hora_inicio", {ascending:true});
+  if (error) { listaMiHorario.innerHTML = `<div class="sin-resultados">No fue posible cargar tu horario.</div>`; return; }
+  const mapa=new Map(); (horarios||[]).forEach(h=>{const hora=horaCorta(h.hora_slot||h.hora_inicio);mapa.set(`${h.dia_semana}|${hora}`,{dia:Number(h.dia_semana),hora});});
+  const slots=[...mapa.values()].sort((a,b)=>a.dia-b.dia||a.hora.localeCompare(b.hora));
+  if(!slots.length){listaMiHorario.innerHTML=`<div class="sin-resultados">Aún no tienes horarios asignados.</div>`;return;}
+  const grupos={};slots.forEach(x=>(grupos[x.dia]||=[]).push(x));
+  listaMiHorario.innerHTML=Object.keys(grupos).sort((a,b)=>a-b).map(d=>`<details class="horario-card" style="padding:0;overflow:hidden"><summary style="cursor:pointer;padding:14px;font-weight:800;display:flex;justify-content:space-between"><span>${dias[d]}</span><span>${grupos[d].length} ▾</span></summary><div style="padding:0 14px 14px">${grupos[d].map(x=>`<div class="horario-meta" style="padding:9px 0;border-top:1px solid #eee8f2"><strong>${x.hora}</strong></div>`).join('')}</div></details>`).join('');
 }
 
 async function cargarProfesionales() {
@@ -487,420 +373,136 @@ async function cargarProfesionales() {
 }
 
 async function cargarServiciosProfesional() {
-  const profesionalId =
-    profesionalHorario.value;
-
-  servicioHorario.disabled = true;
-  servicioHorario.innerHTML = `
-    <option value="">
-      Cargando servicios...
-    </option>
-  `;
+  const profesionalId = profesionalHorario.value;
+  serviciosAsignados = [];
+  servicioHorario.innerHTML = "";
 
   if (!profesionalId) {
-    servicioHorario.innerHTML = `
-      <option value="">
-        Primero selecciona un profesional
-      </option>
-    `;
-
-    listaHorarios.innerHTML = `
-      <div class="sin-resultados">
-        Selecciona un profesional y un servicio.
-      </div>
-    `;
-
+    listaHorarios.innerHTML = `<div class="sin-resultados">Selecciona un profesional.</div>`;
     return;
   }
 
-  const { data: asignaciones, error: errorAsignaciones } =
-    await db
-      .from("profesional_servicios")
-      .select("servicio_id")
-      .eq(
-        "profesional_id",
-        profesionalId
-      );
+  const { data: asignaciones, error: errorAsignaciones } = await db
+    .from("profesional_servicios")
+    .select("servicio_id")
+    .eq("profesional_id", profesionalId);
+  if (errorAsignaciones) return mostrarError("No fue posible cargar los servicios del profesional.");
 
-  if (errorAsignaciones) {
-    console.error(
-      "Error asignaciones:",
-      errorAsignaciones
-    );
-
-    servicioHorario.innerHTML = `
-      <option value="">
-        No fue posible cargar
-      </option>
-    `;
-
-    mostrarError(
-      "No fue posible cargar los servicios del profesional."
-    );
-    return;
-  }
-
-  const ids =
-    (asignaciones || [])
-      .map(x => x.servicio_id);
-
+  const ids = (asignaciones || []).map(x => x.servicio_id).filter(Boolean);
   if (!ids.length) {
-    servicioHorario.innerHTML = `
-      <option value="">
-        Este profesional no tiene servicios asignados
-      </option>
-    `;
+    listaHorarios.innerHTML = `<div class="sin-resultados">Este profesional todavía no tiene servicios asignados.</div>`;
     return;
   }
 
-  const { data: servicios, error } =
-    await db
-      .from("servicios")
-      .select(`
-        id,
-        nombre,
-        duracion_minutos,
-        activo
-      `)
-      .in("id", ids)
-      .eq(
-        "negocio_id",
-        negocioActualId
-      )
-      .eq("activo", true)
-      .order(
-        "nombre",
-        { ascending: true }
-      );
-
-  if (error) {
-    console.error(
-      "Error servicios:",
-      error
-    );
-
-    servicioHorario.innerHTML = `
-      <option value="">
-        No fue posible cargar
-      </option>
-    `;
-
-    mostrarError(
-      "No fue posible cargar los servicios."
-    );
-    return;
-  }
-
-  serviciosAsignados =
-    servicios || [];
-
-  servicioHorario.innerHTML = `
-    <option value="">
-      Selecciona un servicio
-    </option>
-  `;
-
-  for (
-    const servicio
-    of serviciosAsignados
-  ) {
-    const option =
-      document.createElement(
-        "option"
-      );
-
-    option.value =
-      servicio.id;
-
-    option.textContent =
-      servicio.nombre;
-
-    servicioHorario.appendChild(
-      option
-    );
-  }
-
-  servicioHorario.disabled = false;
+  const { data: servicios, error } = await db.from("servicios")
+    .select("id,nombre,duracion_minutos,activo")
+    .in("id", ids).eq("negocio_id", negocioActualId).eq("activo", true).order("nombre");
+  if (error) return mostrarError("No fue posible cargar los servicios.");
+  serviciosAsignados = servicios || [];
+  servicioHorario.innerHTML = serviciosAsignados.map(s => `<option value="${s.id}">${escapar(s.nombre)}</option>`).join("");
 }
 
 async function guardarHorario() {
   ocultarMensaje();
+  const profesionalId = profesionalHorario.value;
+  const dia = Number(diaHorario.value);
+  const hora = horaSlot.value;
+  if (!profesionalId || !dia || !hora) return mostrarError("Selecciona profesional, día y hora.");
+  if (!serviciosAsignados.length) return mostrarError("Este profesional no tiene servicios activos asignados.");
 
-  const profesionalId =
-    profesionalHorario.value;
-
-  const servicioId =
-    servicioHorario.value;
-
-  const dia =
-    Number(
-      diaHorario.value
-    );
-
-  const hora =
-    horaSlot.value;
-
-  if (
-    !profesionalId ||
-    !servicioId ||
-    !dia ||
-    !hora
-  ) {
-    mostrarError(
-      "Selecciona profesional, servicio, día y hora."
-    );
-    return;
-  }
-
-  const servicio =
-    serviciosAsignados.find(
-      s => s.id === servicioId
-    );
-
-  if (!servicio) {
-    mostrarError(
-      "No encontramos el servicio seleccionado."
-    );
-    return;
-  }
-
-  const duracion =
-    Number(
-      servicio.duracion_minutos
-    ) || 60;
-
-  const horaInicio =
-    normalizarHora(hora);
-
-  const horaFin =
-    sumarMinutos(
-      horaInicio,
-      duracion
-    );
-
-  btnGuardarHorario.disabled =
-    true;
-
-  btnGuardarHorario.textContent =
-    "Guardando...";
-
+  const horaInicio = normalizarHora(hora);
+  btnGuardarHorario.disabled = true;
+  btnGuardarHorario.textContent = "Guardando...";
   try {
-    // Evita duplicar exactamente el mismo slot.
-    const { data: duplicados, error: errorDuplicados } =
-      await db
-        .from("horarios")
-        .select("id")
-        .eq(
-          "profesional_id",
-          profesionalId
-        )
-        .eq(
-          "servicio_id",
-          servicioId
-        )
-        .eq(
-          "dia_semana",
-          dia
-        )
-        .eq(
-          "hora_slot",
-          horaInicio
-        )
-        .eq(
-          "activo",
-          true
-        )
-        .limit(1);
-
-    if (errorDuplicados) {
-      throw errorDuplicados;
-    }
-
-    if (duplicados?.length) {
-      mostrarError(
-        "Ese horario ya está agregado."
-      );
-      return;
-    }
-
-    const { error } =
-      await db
-        .from("horarios")
-        .insert({
-          profesional_id:
-            profesionalId,
-          servicio_id:
-            servicioId,
-          dia_semana:
-            dia,
-          hora_slot:
-            horaInicio,
-          hora_inicio:
-            horaInicio,
-          hora_fin:
-            horaFin,
-          activo:
-            true
-        });
-
-    if (error) {
-      throw error;
-    }
-
-    mostrarExito(
-      "Horario agregado correctamente."
-    );
-
+    const { data: existentes, error: e1 } = await db.from("horarios")
+      .select("servicio_id").eq("profesional_id", profesionalId).eq("dia_semana", dia).eq("hora_slot", horaInicio).eq("activo", true);
+    if (e1) throw e1;
+    const ya = new Set((existentes || []).map(x => x.servicio_id));
+    const inserts = serviciosAsignados.filter(s => !ya.has(s.id)).map(s => ({
+      profesional_id: profesionalId, servicio_id: s.id, dia_semana: dia,
+      hora_slot: horaInicio, hora_inicio: horaInicio,
+      hora_fin: sumarMinutos(horaInicio, Number(s.duracion_minutos) || 60), activo: true
+    }));
+    if (!inserts.length) return mostrarExito("Ese horario ya estaba agregado.");
+    const { error } = await db.from("horarios").insert(inserts);
+    if (error) throw error;
+    mostrarExito(`Horario agregado a ${inserts.length} servicio${inserts.length === 1 ? "" : "s"}.`);
     horaSlot.value = "";
-
     await cargarHorarios();
-
   } catch (error) {
-    console.error(
-      "Error guardando horario:",
-      error
-    );
-
-    mostrarError(
-      error?.message ||
-      "No fue posible guardar el horario."
-    );
-
+    console.error(error);
+    mostrarError(error?.message || "No fue posible guardar el horario.");
   } finally {
-    btnGuardarHorario.disabled =
-      false;
-
-    btnGuardarHorario.textContent =
-      "+ Agregar horario";
+    btnGuardarHorario.disabled = false;
+    btnGuardarHorario.textContent = "+ Agregar horario";
   }
 }
 
 async function cargarHorarios() {
-  const profesionalId =
-    profesionalHorario.value;
-
-  const servicioId =
-    servicioHorario.value;
-
-  if (
-    !profesionalId ||
-    !servicioId
-  ) {
-    listaHorarios.innerHTML = `
-      <div class="sin-resultados">
-        Selecciona un profesional y un servicio.
-      </div>
-    `;
-    return;
-  }
-
-  listaHorarios.innerHTML = `
-    <div class="cargando">
-      Cargando horarios...
-    </div>
-  `;
-
-  const { data, error } =
-    await db
-      .from("horarios")
-      .select(`
-        id,
-        profesional_id,
-        servicio_id,
-        dia_semana,
-        hora_slot,
-        hora_inicio,
-        hora_fin,
-        activo
-      `)
-      .eq(
-        "profesional_id",
-        profesionalId
-      )
-      .eq(
-        "servicio_id",
-        servicioId
-      )
-      .order(
-        "dia_semana",
-        { ascending: true }
-      )
-      .order(
-        "hora_inicio",
-        { ascending: true }
-      );
-
-  if (error) {
-    console.error(
-      "Error horarios:",
-      error
-    );
-
-    listaHorarios.innerHTML = `
-      <div class="sin-resultados">
-        No fue posible cargar los horarios.
-      </div>
-    `;
-
-    mostrarError(
-      "No fue posible cargar los horarios."
-    );
-    return;
-  }
-
-  renderHorarios(
-    data || []
-  );
+  const profesionalId = profesionalHorario.value;
+  if (!profesionalId) { listaHorarios.innerHTML = `<div class="sin-resultados">Selecciona un profesional.</div>`; return; }
+  listaHorarios.innerHTML = `<div class="cargando">Cargando horarios...</div>`;
+  const { data, error } = await db.from("horarios")
+    .select("id,profesional_id,servicio_id,dia_semana,hora_slot,hora_inicio,hora_fin,activo")
+    .eq("profesional_id", profesionalId).order("dia_semana", {ascending:true}).order("hora_inicio", {ascending:true});
+  if (error) return mostrarError("No fue posible cargar los horarios.");
+  renderHorarios(data || []);
 }
 
 function renderHorarios(horarios) {
-  if (!horarios.length) {
-    listaHorarios.innerHTML = `<div class="sin-resultados">No hay horarios asignados para este servicio.</div>`;
-    return;
-  }
-  const grupos = {};
-  horarios.forEach(h => (grupos[h.dia_semana] ||= []).push(h));
+  const unicos = new Map();
+  horarios.forEach(h => {
+    const hora = normalizarHora(h.hora_slot || h.hora_inicio);
+    const key = `${h.dia_semana}|${hora}`;
+    if (!unicos.has(key)) unicos.set(key, {dia_semana:Number(h.dia_semana), hora, activos:0, total:0});
+    const x=unicos.get(key); x.total++; if(h.activo) x.activos++;
+  });
+  const slots=[...unicos.values()].sort((a,b)=>a.dia_semana-b.dia_semana || a.hora.localeCompare(b.hora));
+  if (!slots.length) { listaHorarios.innerHTML = `<div class="sin-resultados">No hay horarios asignados.</div>`; return; }
+  const grupos={}; slots.forEach(x => (grupos[x.dia_semana] ||= []).push(x));
   listaHorarios.innerHTML = Object.keys(grupos).sort((a,b)=>a-b).map(dia => {
-    const items = grupos[dia];
-    return `<details class="horario-card" style="padding:0;overflow:hidden">
-      <summary style="cursor:pointer;padding:14px;font-weight:800;color:#493d52;display:flex;justify-content:space-between;align-items:center">
-        <span>${dias[dia]}</span><span style="font-size:12px;color:#81778a">${items.length} horario${items.length===1?'':'s'} ▾</span>
-      </summary>
-      <div style="padding:0 14px 14px">
-      ${items.map(h=>{
-        const inicio=cortarHora(h.hora_inicio||h.hora_slot), fin=cortarHora(h.hora_fin);
-        return `<div style="padding:10px 0;border-top:1px solid #eee8f2;opacity:${h.activo?1:.55}">
-          <div class="horario-meta"><strong>${inicio}${fin?` – ${fin}`:''}</strong> · ${h.activo?'Activo':'Inactivo'}</div>
-          <div class="horario-acciones">
-            <button type="button" class="btn-horario-estado" onclick="cambiarEstadoHorario('${h.id}',${!h.activo})">${h.activo?'Desactivar':'Activar'}</button>
-            <button type="button" class="btn-horario-eliminar" onclick="eliminarHorario('${h.id}')">Eliminar</button>
-          </div></div>`;
-      }).join('')}</div></details>`;
+    const items=grupos[dia];
+    return `<details class="horario-card" style="padding:0;overflow:hidden"><summary style="cursor:pointer;padding:14px;font-weight:800;color:#493d52;display:flex;justify-content:space-between;align-items:center"><span>${dias[dia]}</span><span style="font-size:12px;color:#81778a">${items.length} horario${items.length===1?'':'s'} ▾</span></summary><div style="padding:0 14px 14px">${items.map(h=>`<div style="padding:10px 0;border-top:1px solid #eee8f2;opacity:${h.activos?1:.55}"><div class="horario-meta"><strong>${h.hora.slice(0,5)}</strong> · ${h.activos ? 'Activo' : 'Inactivo'} · aplica a todos sus servicios</div><div class="horario-acciones"><button type="button" class="btn-horario-estado" onclick="cambiarEstadoSlot(${h.dia_semana},'${h.hora}',${h.activos ? 'false':'true'})">${h.activos?'Desactivar':'Activar'}</button><button type="button" class="btn-horario-eliminar" onclick="eliminarSlot(${h.dia_semana},'${h.hora}')">Eliminar</button></div></div>`).join('')}</div></details>`;
   }).join('');
 }
 
 async function copiarHorario(){
   ocultarMensaje();
-  const profesionalId=profesionalHorario.value, servicioId=servicioHorario.value;
+  const profesionalId=profesionalHorario.value;
   const origen=Number(copiarDiaOrigen?.value);
   const destinos=[...document.querySelectorAll('#copiarDiasDestino input:checked')].map(x=>Number(x.value)).filter(x=>x!==origen);
-  if(!profesionalId||!servicioId) return mostrarError('Selecciona primero un profesional y un servicio.');
+  if(!profesionalId) return mostrarError('Selecciona primero un profesional.');
   if(!destinos.length) return mostrarError('Selecciona al menos un día destino diferente al día origen.');
   btnCopiarHorario.disabled=true; btnCopiarHorario.textContent='Copiando...';
   try{
-    const {data:origenes,error:e1}=await db.from('horarios').select('hora_slot,hora_inicio,hora_fin,activo').eq('profesional_id',profesionalId).eq('servicio_id',servicioId).eq('dia_semana',origen).eq('activo',true);
-    if(e1) throw e1;
-    if(!origenes?.length) return mostrarError(`No hay horarios activos en ${dias[origen]}.`);
-    const {data:existentes,error:e2}=await db.from('horarios').select('dia_semana,hora_slot,hora_inicio').eq('profesional_id',profesionalId).eq('servicio_id',servicioId).in('dia_semana',destinos).eq('activo',true);
+    const {data:origenes,error:e1}=await db.from('horarios').select('servicio_id,hora_slot,hora_inicio,hora_fin').eq('profesional_id',profesionalId).eq('dia_semana',origen).eq('activo',true);
+    if(e1) throw e1; if(!origenes?.length) return mostrarError(`No hay horarios activos en ${dias[origen]}.`);
+    const {data:existentes,error:e2}=await db.from('horarios').select('dia_semana,servicio_id,hora_slot,hora_inicio').eq('profesional_id',profesionalId).in('dia_semana',destinos).eq('activo',true);
     if(e2) throw e2;
-    const keys=new Set((existentes||[]).map(h=>`${h.dia_semana}|${normalizarHora(h.hora_slot||h.hora_inicio)}`));
+    const keys=new Set((existentes||[]).map(h=>`${h.dia_semana}|${h.servicio_id}|${normalizarHora(h.hora_slot||h.hora_inicio)}`));
     const inserts=[];
-    destinos.forEach(d=>origenes.forEach(h=>{const hi=normalizarHora(h.hora_slot||h.hora_inicio); if(!keys.has(`${d}|${hi}`)) inserts.push({profesional_id:profesionalId,servicio_id:servicioId,dia_semana:d,hora_slot:hi,hora_inicio:hi,hora_fin:h.hora_fin,activo:true});}));
-    if(!inserts.length) return mostrarExito('Los días seleccionados ya tenían esos horarios.');
-    const {error}=await db.from('horarios').insert(inserts); if(error) throw error;
-    mostrarExito(`Se copiaron ${inserts.length} horarios correctamente.`); document.querySelectorAll('#copiarDiasDestino input').forEach(x=>x.checked=false); await cargarHorarios();
+    destinos.forEach(d=>origenes.forEach(h=>{const hi=normalizarHora(h.hora_slot||h.hora_inicio);const k=`${d}|${h.servicio_id}|${hi}`;if(!keys.has(k)){inserts.push({profesional_id:profesionalId,servicio_id:h.servicio_id,dia_semana:d,hora_slot:hi,hora_inicio:hi,hora_fin:h.hora_fin,activo:true});keys.add(k);}}));
+    if(!inserts.length) mostrarExito('Los días seleccionados ya tenían esos horarios.');
+    else { const {error}=await db.from('horarios').insert(inserts); if(error) throw error; mostrarExito(`Horario copiado a ${destinos.map(d=>dias[d]).join(', ')}.`); }
+    document.querySelectorAll('#copiarDiasDestino input').forEach(x=>x.checked=false); modalCopiarHorario?.classList.add('oculto'); await cargarHorarios();
   }catch(e){console.error(e);mostrarError(e?.message||'No fue posible copiar los horarios.');}
-  finally{btnCopiarHorario.disabled=false;btnCopiarHorario.textContent='📋 Copiar horario';}
+  finally{btnCopiarHorario.disabled=false;btnCopiarHorario.textContent='Copiar';}
+}
+
+async function cambiarEstadoSlot(dia, hora, nuevoActivo){
+  const profesionalId=profesionalHorario.value; if(!profesionalId) return;
+  ocultarMensaje();
+  const {error}=await db.from('horarios').update({activo:nuevoActivo}).eq('profesional_id',profesionalId).eq('dia_semana',dia).eq('hora_slot',normalizarHora(hora));
+  if(error) return mostrarError('No fue posible cambiar el horario.');
+  mostrarExito(nuevoActivo?'Horario activado.':'Horario desactivado.'); await cargarHorarios();
+}
+
+async function eliminarSlot(dia,hora){
+  if(!confirm('¿Eliminar esta hora para todos los servicios del profesional?')) return;
+  const profesionalId=profesionalHorario.value;
+  const {error}=await db.from('horarios').delete().eq('profesional_id',profesionalId).eq('dia_semana',dia).eq('hora_slot',normalizarHora(hora));
+  if(error) return mostrarError('No fue posible eliminar el horario.');
+  mostrarExito('Horario eliminado.'); await cargarHorarios();
 }
 
 async function cambiarEstadoHorario(

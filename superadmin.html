@@ -987,6 +987,7 @@
     <div class="form-servicio">
 
       <h3>Agregar horario</h3>
+        <p style="font-size:13px;color:#81778a;margin-top:0">Se aplica automáticamente a todos los servicios asignados al profesional.</p>
 
       <form id="formHorarioSA">
 
@@ -998,12 +999,7 @@
         ></select>
 
 
-        <label>Servicio</label>
-
-        <select
-          id="horServicio"
-          required
-        ></select>
+        <select id="horServicio" style="display:none" aria-hidden="true" tabindex="-1"></select>
 
 
         <label>Día</label>
@@ -1042,15 +1038,21 @@
     </div>
 
 
-    <div class="sa-card" style="margin-top:16px;">
-      <h3>📋 Copiar horario</h3>
-      <p style="font-size:13px;color:#81778a;">Usa el profesional y servicio seleccionados arriba. Copia un día a uno o varios días sin duplicar horarios existentes.</p>
-      <label>Día origen</label>
-      <select id="saCopiarOrigen"><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="7">Domingo</option></select>
-      <div id="saCopiarDestinos" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px 0;">
-        <label><input type="checkbox" value="1"> Lunes</label><label><input type="checkbox" value="2"> Martes</label><label><input type="checkbox" value="3"> Miércoles</label><label><input type="checkbox" value="4"> Jueves</label><label><input type="checkbox" value="5"> Viernes</label><label><input type="checkbox" value="6"> Sábado</label><label><input type="checkbox" value="7"> Domingo</label>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+      <button id="btnAbrirCopiarHorarioSA" type="button" class="sa-mini-btn">📋 Copiar un día</button>
+    </div>
+
+    <div id="modalCopiarHorarioSA" class="oculto" style="position:fixed;inset:0;background:rgba(31,24,39,.45);z-index:3000;display:flex;align-items:center;justify-content:center;padding:18px;">
+      <div style="width:min(100%,430px);background:#fff;border-radius:22px;padding:20px;box-shadow:0 24px 60px rgba(35,25,48,.25);">
+        <h3 style="margin-top:0">📋 Copiar horario</h3>
+        <p style="font-size:13px;color:#81778a">Usa el profesional seleccionado y copia todas sus horas de un día a otros días.</p>
+        <label>Día origen</label>
+        <select id="saCopiarOrigen"><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="7">Domingo</option></select>
+        <div id="saCopiarDestinos" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">
+          <label><input type="checkbox" value="1"> Lun</label><label><input type="checkbox" value="2"> Mar</label><label><input type="checkbox" value="3"> Mié</label><label><input type="checkbox" value="4"> Jue</label><label><input type="checkbox" value="5"> Vie</label><label><input type="checkbox" value="6"> Sáb</label><label><input type="checkbox" value="7"> Dom</label>
+        </div>
+        <div style="display:flex;gap:8px"><button id="btnCerrarCopiarHorarioSA" type="button" class="sa-mini-btn" style="flex:1">Cancelar</button><button id="btnCopiarHorarioSA" type="button" class="btn-guardar" style="flex:1">Copiar</button></div>
       </div>
-      <button id="btnCopiarHorarioSA" type="button" class="btn-guardar">📋 Copiar horario</button>
     </div>
 
     <div
