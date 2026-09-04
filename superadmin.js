@@ -1214,7 +1214,280 @@ async function toggleServicio(id,activo){const {error}=await db.from("servicios"
 async function eliminarServicio(id){if(!confirm("¿Eliminar este servicio?"))return;const {error}=await db.from("servicios").delete().eq("id",id);if(error)return msg(error.message,true);msg("Servicio eliminado.");await cargarServicios();}
 async function editarHorarioSA(id){const {data:h,error:e}=await db.from("horarios").select("dia_semana,hora_inicio,hora_slot,servicio_id").eq("id",id).single();if(e)return msg(e.message,true);const dia=Number(prompt("Día (1=Lunes ... 7=Domingo):",h.dia_semana));if(!(dia>=1&&dia<=7))return msg("Día no válido.",true);const hora=prompt("Hora (HH:MM):",String(h.hora_slot||h.hora_inicio||"").slice(0,5));if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(hora||""))return msg("Hora no válida.",true);const {data:sv,error:se}=await db.from("servicios").select("duracion_minutos").eq("id",h.servicio_id).single();if(se)return msg(se.message,true);const {error}=await db.from("horarios").update({dia_semana:dia,hora_slot:hora+":00",hora_inicio:hora+":00",hora_fin:sumarMinutos(hora,Number(sv?.duracion_minutos||60))}).eq("id",id);if(error)return msg(error.message,true);msg("Horario actualizado.");await cargarHorarios();}
 async function toggleHorario(id,activo){const {error}=await db.from("horarios").update({activo:!activo}).eq("id",id);if(error)return msg(error.message,true);msg(activo?"Horario desactivado.":"Horario activado.");await cargarHorarios();}
-async function editarCitaSA(id){const {data:c,error:e}=await db.from("citas").select("paciente_nombre,paciente_telefono,paciente_email,fecha,hora_inicio,hora_fin,estado,servicio_id").eq("id",id).single();if(e)return msg(e.message,true);const paciente=prompt("Paciente:",c.paciente_nombre||"");if(!paciente?.trim())return;const telefono=prompt("Teléfono:",c.paciente_telefono||"");const email=prompt("Correo:",c.paciente_email||"");const fecha=prompt("Fecha (AAAA-MM-DD):",c.fecha||"");if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(fecha||""))return msg("Fecha no válida.",true);const hora=prompt("Hora (HH:MM):",String(c.hora_inicio||"").slice(0,5));if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(hora||""))return msg("Hora no válida.",true);const estado=prompt("Estado: pendiente, confirmada, atendida, cancelada o no_asistio",c.estado||"pendiente");if(!["pendiente","confirmada","atendida","cancelada","no_asistio"].includes(estado))return msg("Estado no válido.",true);const {data:sv}=await db.from("servicios").select("duracion_minutos").eq("id",c.servicio_id).maybeSingle();const {error}=await db.from("citas").update({paciente_nombre:paciente.trim(),paciente_telefono:telefono?.trim()||null,paciente_email:email?.trim()||null,fecha,hora_inicio:hora+":00",hora_fin:sumarMinutos(hora,Number(sv?.duracion_minutos||60)),estado}).eq("id",id);if(error)return msg(error.message,true);msg("Cita actualizada.");await cargarCitas();}
+let citaSAEditandoId = null;
+let citaSAEditandoServicioId = null;
+
+function asegurarModalEditarCitaSA() {
+  if ($("modalEditarCitaSA")) return;
+
+  const style = document.createElement("style");
+  style.textContent = `
+    #modalEditarCitaSA {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(26, 17, 30, .46);
+      backdrop-filter: blur(4px);
+    }
+    #modalEditarCitaSA .cita-sa-modal {
+      width: min(560px, 100%);
+      max-height: calc(100vh - 36px);
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid #e6deeb;
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow: 0 24px 70px rgba(38, 20, 45, .22);
+    }
+    #modalEditarCitaSA .cita-sa-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    #modalEditarCitaSA .cita-sa-head h3 { margin: 0; font-size: 26px; }
+    #modalEditarCitaSA .cita-sa-cerrar {
+      width: 42px;
+      height: 42px;
+      border: 1px solid #e4dce8;
+      border-radius: 50%;
+      background: #fff;
+      font-size: 22px;
+      cursor: pointer;
+    }
+    #modalEditarCitaSA .cita-sa-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    #modalEditarCitaSA .cita-sa-campo { display: flex; flex-direction: column; gap: 7px; }
+    #modalEditarCitaSA .cita-sa-campo.ancho { grid-column: 1 / -1; }
+    #modalEditarCitaSA label { font-size: 15px; }
+    #modalEditarCitaSA input,
+    #modalEditarCitaSA select {
+      width: 100%;
+      min-height: 50px;
+      box-sizing: border-box;
+      border: 1px solid #dcd4e1;
+      border-radius: 16px;
+      background: #fff;
+      padding: 11px 14px;
+      font: inherit;
+      color: inherit;
+      outline: none;
+    }
+    #modalEditarCitaSA input:focus,
+    #modalEditarCitaSA select:focus {
+      border-color: #8a63df;
+      box-shadow: 0 0 0 3px rgba(138, 99, 223, .12);
+    }
+    #modalEditarCitaSA .cita-sa-error {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #fff0f0;
+      color: #9b3030;
+    }
+    #modalEditarCitaSA .cita-sa-acciones {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    #modalEditarCitaSA .cita-sa-acciones button {
+      min-height: 50px;
+      border-radius: 16px;
+      border: 1px solid #ded5e4;
+      font: inherit;
+      cursor: pointer;
+    }
+    #modalEditarCitaSA .cita-sa-guardar {
+      background: #7d4de0;
+      color: #fff;
+      border-color: #7d4de0 !important;
+    }
+    @media (max-width: 600px) {
+      #modalEditarCitaSA { align-items: flex-end; padding: 0; }
+      #modalEditarCitaSA .cita-sa-modal {
+        width: 100%;
+        max-height: 88vh;
+        border-radius: 28px 28px 0 0;
+        padding: 22px 18px 26px;
+      }
+      #modalEditarCitaSA .cita-sa-grid { grid-template-columns: 1fr; }
+      #modalEditarCitaSA .cita-sa-campo.ancho { grid-column: auto; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const modal = document.createElement("div");
+  modal.id = "modalEditarCitaSA";
+  modal.innerHTML = `
+    <div class="cita-sa-modal" role="dialog" aria-modal="true" aria-labelledby="tituloEditarCitaSA">
+      <div class="cita-sa-head">
+        <div>
+          <h3 id="tituloEditarCitaSA">✏️ Editar cita</h3>
+          <div class="sa-muted">Actualiza los datos y guarda los cambios.</div>
+        </div>
+        <button type="button" class="cita-sa-cerrar" onclick="cerrarEditarCitaSA()" aria-label="Cerrar">×</button>
+      </div>
+
+      <form id="formEditarCitaSA">
+        <div class="cita-sa-grid">
+          <div class="cita-sa-campo ancho">
+            <label for="editCitaPacienteSA">Paciente</label>
+            <input id="editCitaPacienteSA" type="text" required maxlength="120">
+          </div>
+          <div class="cita-sa-campo">
+            <label for="editCitaTelefonoSA">Teléfono</label>
+            <input id="editCitaTelefonoSA" type="tel" inputmode="numeric" maxlength="15">
+          </div>
+          <div class="cita-sa-campo">
+            <label for="editCitaEmailSA">Correo</label>
+            <input id="editCitaEmailSA" type="email" maxlength="160">
+          </div>
+          <div class="cita-sa-campo">
+            <label for="editCitaFechaSA">Fecha</label>
+            <input id="editCitaFechaSA" type="date" required>
+          </div>
+          <div class="cita-sa-campo">
+            <label for="editCitaHoraSA">Hora</label>
+            <input id="editCitaHoraSA" type="time" required>
+          </div>
+          <div class="cita-sa-campo ancho">
+            <label for="editCitaEstadoSA">Estado</label>
+            <select id="editCitaEstadoSA" required>
+              <option value="pendiente">Pendiente</option>
+              <option value="confirmada">Confirmada</option>
+              <option value="atendida">Atendida</option>
+              <option value="cancelada">Cancelada</option>
+              <option value="no_asistio">No asistió</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="editCitaErrorSA" class="cita-sa-error"></div>
+
+        <div class="cita-sa-acciones">
+          <button type="button" onclick="cerrarEditarCitaSA()">Cancelar</button>
+          <button id="btnGuardarCitaSA" class="cita-sa-guardar" type="submit">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  modal.addEventListener("click", e => {
+    if (e.target === modal) cerrarEditarCitaSA();
+  });
+
+  document.body.appendChild(modal);
+  $("formEditarCitaSA").addEventListener("submit", guardarEdicionCitaSA);
+}
+
+async function editarCitaSA(id) {
+  clearMsg();
+  asegurarModalEditarCitaSA();
+
+  const { data: c, error } = await db
+    .from("citas")
+    .select("paciente_nombre,paciente_telefono,paciente_email,fecha,hora_inicio,hora_fin,estado,servicio_id")
+    .eq("id", id)
+    .single();
+
+  if (error) return msg(error.message, true);
+
+  citaSAEditandoId = id;
+  citaSAEditandoServicioId = c.servicio_id;
+
+  $("editCitaPacienteSA").value = c.paciente_nombre || "";
+  $("editCitaTelefonoSA").value = c.paciente_telefono || "";
+  $("editCitaEmailSA").value = c.paciente_email || "";
+  $("editCitaFechaSA").value = c.fecha || "";
+  $("editCitaHoraSA").value = String(c.hora_inicio || "").slice(0, 5);
+  $("editCitaEstadoSA").value = c.estado || "pendiente";
+  $("editCitaErrorSA").style.display = "none";
+  $("editCitaErrorSA").textContent = "";
+
+  $("modalEditarCitaSA").style.display = "flex";
+  setTimeout(() => $("editCitaPacienteSA")?.focus(), 50);
+}
+
+function cerrarEditarCitaSA() {
+  const modal = $("modalEditarCitaSA");
+  if (modal) modal.style.display = "none";
+  citaSAEditandoId = null;
+  citaSAEditandoServicioId = null;
+}
+
+async function guardarEdicionCitaSA(e) {
+  e.preventDefault();
+  if (!citaSAEditandoId) return;
+
+  const paciente = $("editCitaPacienteSA").value.trim();
+  const telefono = $("editCitaTelefonoSA").value.trim();
+  const email = $("editCitaEmailSA").value.trim();
+  const fecha = $("editCitaFechaSA").value;
+  const hora = $("editCitaHoraSA").value;
+  const estado = $("editCitaEstadoSA").value;
+  const errorBox = $("editCitaErrorSA");
+  const btn = $("btnGuardarCitaSA");
+
+  const mostrarError = texto => {
+    errorBox.textContent = texto;
+    errorBox.style.display = "block";
+  };
+
+  if (!paciente) return mostrarError("Escribe el nombre del paciente.");
+  if (!fecha) return mostrarError("Selecciona una fecha.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return mostrarError("La fecha no es válida.");
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora || "")) return mostrarError("Selecciona una hora válida.");
+  if (!["pendiente", "confirmada", "atendida", "cancelada", "no_asistio"].includes(estado)) return mostrarError("Selecciona un estado válido.");
+
+  errorBox.style.display = "none";
+  btn.disabled = true;
+  btn.textContent = "Guardando...";
+
+  try {
+    const { data: sv, error: servicioError } = await db
+      .from("servicios")
+      .select("duracion_minutos")
+      .eq("id", citaSAEditandoServicioId)
+      .maybeSingle();
+
+    if (servicioError) throw servicioError;
+
+    const { error } = await db
+      .from("citas")
+      .update({
+        paciente_nombre: paciente,
+        paciente_telefono: telefono || null,
+        paciente_email: email || null,
+        fecha,
+        hora_inicio: hora + ":00",
+        hora_fin: sumarMinutos(hora, Number(sv?.duracion_minutos || 60)),
+        estado
+      })
+      .eq("id", citaSAEditandoId);
+
+    if (error) throw error;
+
+    cerrarEditarCitaSA();
+    msg("Cita actualizada.");
+    await cargarCitas();
+  } catch (err) {
+    mostrarError(err?.message || "No fue posible actualizar la cita.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Guardar cambios";
+  }
+}
+
 async function eliminarCitaSA(id){if(!confirm("¿Eliminar definitivamente esta cita?"))return;const {error}=await db.from("citas").delete().eq("id",id);if(error)return msg(error.message,true);msg("Cita eliminada.");await cargarCitas();}
 async function eliminarHorarioSA(id){if(!confirm("¿Eliminar este horario?"))return;const {error}=await db.from("horarios").delete().eq("id",id);if(error)return msg(error.message,true);msg("Horario eliminado.");await cargarHorarios();}
 
