@@ -1,4 +1,6 @@
 let negocios = [];
+let profesionalServiciosSAId = null;
+let profesionalServiciosSANombre = "";
 
 const $ = id => document.getElementById(id);
 
@@ -91,6 +93,8 @@ function conectarEventos() {
   $("btnCancelarEditarNegocio")?.addEventListener("click", cerrarEditarNegocio);
   $("formUsuario").onsubmit = crearUsuario;
   $("formProfesional").onsubmit = crearProfesional;
+  $("btnGuardarServiciosProfesionalSA")?.addEventListener("click", guardarServiciosProfesionalSA);
+  $("btnCerrarServiciosProfesionalSA")?.addEventListener("click", cerrarServiciosProfesionalSA);
   $("formServicioSA").onsubmit = crearServicio;
   $("formHorarioSA").onsubmit = crearHorario;
   if ($("btnCopiarHorarioSA")) $("btnCopiarHorarioSA").onclick = copiarHorarioSA;
@@ -99,7 +103,7 @@ function conectarEventos() {
   if ($("btnCancelarCopiarHorarioSA")) $("btnCancelarCopiarHorarioSA").onclick = cerrarModalCopiarHorarioSA;
   if ($("modalCopiarHorarioSA")) $("modalCopiarHorarioSA").onclick = e => { if(e.target === $("modalCopiarHorarioSA")) cerrarModalCopiarHorarioSA(); };
 
-  $("profNegocio").onchange = cargarProfesionales;
+  $("profNegocio").onchange = async () => { cerrarServiciosProfesionalSA(); await cargarProfesionales(); };
   $("servNegocio").onchange = cargarServicios;
 
   $("horNegocio").onchange = async () => {
@@ -418,6 +422,7 @@ async function cargarProfesionales() {
         </div>
         <div class="sa-actions">
           <button type="button" onclick="editarProfesional('${p.id}')">✏️ Editar</button>
+          <button type="button" onclick="abrirServiciosProfesionalSA('${p.id}')">🛍️ Servicios</button>
           <button type="button" onclick="toggleProfesional('${p.id}', ${!!p.activo})">${p.activo ? "⏸️ Desactivar" : "▶️ Activar"}</button>
           <button type="button" onclick="eliminarProfesional('${p.id}')">🗑️ Eliminar</button>
         </div>
@@ -425,6 +430,126 @@ async function cargarProfesionales() {
     `).join("")
     ||
     '<div class="sin-resultados">Sin profesionales.</div>';
+}
+
+
+async function abrirServiciosProfesionalSA(id) {
+  clearMsg();
+
+  const negocio_id = $("profNegocio")?.value || negocios[0]?.id;
+  if (!negocio_id) return msg("Selecciona un negocio.", true);
+
+  const { data: profesional, error: errorProfesional } = await db
+    .from("profesionales")
+    .select("id,nombre,negocio_id")
+    .eq("id", id)
+    .eq("negocio_id", negocio_id)
+    .maybeSingle();
+
+  if (errorProfesional || !profesional) {
+    return msg("No pude cargar el profesional.", true);
+  }
+
+  profesionalServiciosSAId = profesional.id;
+  profesionalServiciosSANombre = profesional.nombre || "Profesional";
+
+  $("nombreProfesionalServiciosSA").textContent = profesionalServiciosSANombre;
+  $("seccionServiciosProfesionalSA").classList.remove("oculto");
+  $("listaServiciosProfesionalSA").innerHTML = '<div class="sa-muted">Cargando servicios...</div>';
+
+  const [serviciosRespuesta, asignacionesRespuesta] = await Promise.all([
+    db
+      .from("servicios")
+      .select("id,nombre,activo")
+      .eq("negocio_id", negocio_id)
+      .eq("activo", true)
+      .order("nombre"),
+    db
+      .from("profesional_servicios")
+      .select("servicio_id")
+      .eq("profesional_id", profesional.id)
+  ]);
+
+  if (serviciosRespuesta.error) {
+    return msg("No pude cargar los servicios: " + serviciosRespuesta.error.message, true);
+  }
+  if (asignacionesRespuesta.error) {
+    return msg("No pude cargar las asignaciones: " + asignacionesRespuesta.error.message, true);
+  }
+
+  const servicios = serviciosRespuesta.data || [];
+  const asignados = new Set((asignacionesRespuesta.data || []).map(x => x.servicio_id));
+
+  $("listaServiciosProfesionalSA").innerHTML = servicios.length
+    ? servicios.map(servicio => `
+        <label style="display:flex;align-items:center;gap:10px;padding:11px 8px;border-bottom:1px solid #eee9f0;cursor:pointer;">
+          <input
+            type="checkbox"
+            class="check-servicio-profesional-sa"
+            value="${servicio.id}"
+            ${asignados.has(servicio.id) ? "checked" : ""}
+            style="width:auto;margin:0;"
+          >
+          <span>${AR.escape(servicio.nombre)}</span>
+        </label>
+      `).join("")
+    : '<div class="sin-resultados">Primero agrega servicios activos al negocio.</div>';
+
+  $("seccionServiciosProfesionalSA").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function guardarServiciosProfesionalSA() {
+  if (!profesionalServiciosSAId) return;
+
+  clearMsg();
+  const boton = $("btnGuardarServiciosProfesionalSA");
+  boton.disabled = true;
+  boton.textContent = "Guardando...";
+
+  try {
+    const seleccionados = [...document.querySelectorAll(".check-servicio-profesional-sa:checked")]
+      .map(check => check.value);
+
+    const { error: errorBorrar } = await db
+      .from("profesional_servicios")
+      .delete()
+      .eq("profesional_id", profesionalServiciosSAId);
+
+    if (errorBorrar) throw errorBorrar;
+
+    if (seleccionados.length) {
+      const filas = seleccionados.map(servicio_id => ({
+        profesional_id: profesionalServiciosSAId,
+        servicio_id
+      }));
+
+      const { error: errorInsertar } = await db
+        .from("profesional_servicios")
+        .insert(filas);
+
+      if (errorInsertar) throw errorInsertar;
+    }
+
+    msg(`Servicios de ${profesionalServiciosSANombre} actualizados.`);
+
+    // Si estás usando el mismo profesional en Horarios, refresca la lista de servicios al instante.
+    if ($("horProfesional")?.value === profesionalServiciosSAId) {
+      await llenarServiciosHorario();
+    }
+  } catch (error) {
+    console.error("Error asignando servicios:", error);
+    msg("No fue posible guardar los servicios: " + (error.message || "Error desconocido"), true);
+  } finally {
+    boton.disabled = false;
+    boton.textContent = "Guardar servicios";
+  }
+}
+
+function cerrarServiciosProfesionalSA() {
+  profesionalServiciosSAId = null;
+  profesionalServiciosSANombre = "";
+  $("seccionServiciosProfesionalSA")?.classList.add("oculto");
+  if ($("listaServiciosProfesionalSA")) $("listaServiciosProfesionalSA").innerHTML = "";
 }
 
 
